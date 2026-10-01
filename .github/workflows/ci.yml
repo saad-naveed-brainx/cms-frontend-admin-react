@@ -11,6 +11,9 @@ on:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    env:
+      # CI has no .env.local. Same value as .env.example; no API runs here, the page only shows it.
+      VITE_API_URL: http://localhost:4000
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
