@@ -22,3 +22,9 @@ logs/
 .vscode/*
 !.vscode/extensions.json
 *.sw?
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
