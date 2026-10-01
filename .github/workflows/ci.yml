@@ -1,0 +1,34 @@
+# Runs the same checks as `devflow-gate` on every pull request and every push to master.
+# Visual tests are not run here: their baselines are macOS screenshots, and Linux renders fonts
+# differently, so they would always differ. They run locally and in devflow slots instead.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run tokens
+      - run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

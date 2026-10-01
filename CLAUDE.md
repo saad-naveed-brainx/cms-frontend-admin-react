@@ -29,15 +29,19 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
 - **Drag sensors and the iframe.** dnd-kit listens on `document`; the iframe has a *different*
   `document`. List-panel dragging works normally; dragging inside the canvas needs sensors pointed at
   the iframe's document.
-- Port is fixed at **5173** (`strictPort`), and it must appear in the API's `CORS_ORIGINS`.
+- Port is **5173** by default (`strictPort`); `vite.config.ts` reads `PORT` so a devflow slot or the
+  browser tests (5190) can run beside it. Whatever port admin runs on must be in the API's `CORS_ORIGINS`.
 - `VITE_API_URL` points at **`:4001`** locally, not 4000.
 
 ## Commands
 
 ```bash
-npm run dev        # vite, port 5173
-npm run build      # tsc -b && vite build → dist/
-npm run preview    # serve the build
+npm run dev          # vite, port 5173 (or $PORT)
+npm run build        # tsc -b && vite build → dist/
+npm run preview      # serve the build
 npm run typecheck
-npm run lint       # oxlint
+npm run lint         # oxlint
+npm run tokens       # no hex colours or raw px outside src/index.css
+npm run test:e2e     # Playwright browser tests (port 5190, or the slot's)
+npm run test:visual  # screenshots at 375/768/1280 vs the approved baselines
 ```
