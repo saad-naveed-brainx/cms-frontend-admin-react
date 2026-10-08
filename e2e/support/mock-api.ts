@@ -1,4 +1,5 @@
-import type { Page, Route } from '@playwright/test'
+import type { Page, Request, Route } from '@playwright/test'
+import { flowApiPort } from '../flow/env.ts'
 
 /**
  * Helpers for the tests that do NOT use the real API: they answer the API's calls themselves, for
@@ -72,4 +73,154 @@ export async function seedStorage(page: Page, entries: Record<string, string>) {
     for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value)
   }, entries)
   await page.reload()
+}
+
+// ---- the content API (CNT-01), for the page screens ----
+
+export const pageType = {
+  id: '0198f2a0-0000-7000-8000-0000000000b1',
+  slug: 'page',
+  name: 'Page',
+  urlPrefix: null,
+  hierarchical: true,
+  hasCategories: false,
+  hasTags: false,
+  isBuiltin: true,
+}
+
+export const postType = {
+  id: '0198f2a0-0000-7000-8000-0000000000b2',
+  slug: 'post',
+  name: 'Post',
+  urlPrefix: '/blog',
+  hierarchical: false,
+  hasCategories: true,
+  hasTags: true,
+  isBuiltin: true,
+}
+
+export type FakePage = {
+  id: string
+  type: { id: string; slug: string; name: string }
+  parentId: string | null
+  title: string
+  slug: string
+  path: string
+  status: string
+  publishedAt: string | null
+  createdBy: string | null
+  updatedBy: string | null
+  createdAt: string
+  updatedAt: string
+  blocks: unknown[]
+  data: Record<string, unknown>
+}
+
+const typeRef = (type: { id: string; slug: string; name: string }) => ({
+  id: type.id,
+  slug: type.slug,
+  name: type.name,
+})
+
+/** A page as the content API answers. `n` keeps ids and dates apart; any field can be given. */
+export function fakePage(n: number, fields: Partial<FakePage> = {}): FakePage {
+  const slug = fields.slug ?? `page-${n}`
+  return {
+    id: `0198f2a0-0000-7000-8000-${String(n).padStart(12, '0')}`,
+    type: typeRef(pageType),
+    parentId: null,
+    title: `Page ${n}`,
+    slug,
+    path: `/${slug}`,
+    status: 'draft',
+    publishedAt: null,
+    createdBy: person.id,
+    updatedBy: person.id,
+    createdAt: '2026-10-01T09:00:00.000Z',
+    updatedAt: `2026-10-0${1 + (n % 8)}T10:00:00.000Z`,
+    blocks: [],
+    data: {},
+    ...fields,
+  }
+}
+
+const summaryOf = (page: FakePage) =>
+  Object.fromEntries(Object.entries(page).filter(([key]) => key !== 'blocks' && key !== 'data'))
+
+type Handler = (route: Route, request: Request) => boolean | Promise<boolean>
+
+/**
+ * A stand-in content API with a list of pages the test can read and change. `calls` records every
+ * request, and `override` lets a test answer a request itself (a 403, no connection): return true
+ * when it has.
+ */
+export async function fakeContent(page: Page, initial: FakePage[] = []) {
+  const state = {
+    pages: [...initial],
+    calls: [] as string[],
+    override: null as Handler | null,
+  }
+
+  await page.route(
+    (url) => url.port === String(flowApiPort) && /^\/content(-types)?(\/|$)/.test(url.pathname),
+    async (route, request) => {
+      const url = new URL(request.url())
+      const method = request.method()
+      state.calls.push(`${method} ${url.pathname}${url.search}`)
+      if (state.override && (await state.override(route, request))) return
+
+      if (url.pathname === '/content-types' && method === 'GET') {
+        return fulfill(route, 200, { items: [pageType, postType] })
+      }
+      if (url.pathname === '/content' && method === 'GET') {
+        const type = url.searchParams.get('type')
+        const status = url.searchParams.get('status')
+        const limit = Number(url.searchParams.get('limit') ?? 25)
+        const offset = Number(url.searchParams.get('offset') ?? 0)
+        const matching = state.pages.filter(
+          (item) => (!type || item.type.slug === type) && (!status || item.status === status),
+        )
+        return fulfill(route, 200, {
+          items: matching.slice(offset, offset + limit).map(summaryOf),
+          total: matching.length,
+          limit,
+          offset,
+        })
+      }
+      if (url.pathname === '/content' && method === 'POST') {
+        const body = request.postDataJSON() as { type: string; title: string; slug: string }
+        const type = [pageType, postType].find((item) => item.slug === body.type)
+        if (!type) return fulfill(route, 400, { message: 'Invalid request', errors: ['type: unknown'] })
+        const created = fakePage(state.pages.length + 100, {
+          type: typeRef(type),
+          title: body.title,
+          slug: body.slug,
+          path: `${type.urlPrefix ?? ''}/${body.slug}`,
+        })
+        state.pages.unshift(created)
+        return fulfill(route, 201, created)
+      }
+      const one = url.pathname.match(/^\/content\/([^/]+)$/)
+      if (one) {
+        const found = state.pages.find((item) => item.id === one[1])
+        if (!found) return fulfill(route, 404, { message: 'Page not found' })
+        if (method === 'GET') return fulfill(route, 200, found)
+        if (method === 'PATCH') {
+          Object.assign(found, request.postDataJSON(), { updatedAt: '2026-10-09T10:00:00.000Z' })
+          return fulfill(route, 200, found)
+        }
+      }
+      return fulfill(route, 404, { message: 'Not found' })
+    },
+  )
+  return state
+}
+
+/** Opens the app signed in as the mock person, on one site, with a role that holds exactly these permissions. */
+export async function signedInAs(page: Page, permissions: string[]) {
+  const membership = { ...orchard, role: { ...orchard.role, name: 'Tester' }, permissions }
+  await page.route('**/auth/me', (route) => fulfill(route, 200, profileBody([membership])))
+  await seedStorage(page, {
+    [SESSION_KEY]: JSON.stringify({ accessToken: 'saved-token', expiresAt: inDays(1) }),
+  })
 }

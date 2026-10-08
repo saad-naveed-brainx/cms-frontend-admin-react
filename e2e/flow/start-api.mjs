@@ -5,7 +5,8 @@ import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
-const { FLOW_DATABASE, FLOW_API_PORT, FLOW_ADMIN_ORIGIN, FLOW_ADMIN, FLOW_TENANTS } = process.env
+const { FLOW_DATABASE, FLOW_API_PORT, FLOW_ADMIN_ORIGIN, FLOW_ADMIN, FLOW_TENANTS, FLOW_SOLO } =
+  process.env
 const apiDir = path.resolve(process.env.FLOW_API_DIR ?? '../api')
 
 if (!existsSync(path.join(apiDir, 'package.json'))) {
@@ -55,6 +56,21 @@ JSON.parse(FLOW_TENANTS).forEach((tenant, index) => {
     { cwd: apiDir, env: index === 0 ? { ...env, SEED_ADMIN_PASSWORD: admin.password } : env },
   )
 })
+
+// A second person with a site of their own.
+const solo = JSON.parse(FLOW_SOLO)
+run(
+  'node',
+  [
+    'dist/cli/seed.js',
+    '--organization', solo.tenant.organization,
+    '--site', solo.tenant.site,
+    '--host', solo.tenant.host,
+    '--email', solo.admin.email,
+    '--name', solo.admin.name,
+  ],
+  { cwd: apiDir, env: { ...env, SEED_ADMIN_PASSWORD: solo.admin.password } },
+)
 
 const server = spawn('node', ['dist/main.js'], { cwd: apiDir, env, stdio: 'inherit' })
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.kill(signal))

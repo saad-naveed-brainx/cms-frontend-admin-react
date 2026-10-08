@@ -36,8 +36,13 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   (`{accessToken, expiresAt}` only) and `cms-admin.site` (the site being worked on). Everything else
   (person, sites, role, permissions) is asked of `GET /auth/me` on every load. Calls go through `authed()`,
   so the token and `X-Site-Id` travel with them and a 401 ends the session; `src/api.ts` is the only
-  place that calls `fetch`. There is no router yet: `App.tsx` switches on the session status, and
-  `CNT-02` adds one (`../docs/DECISIONS.md` D-020).
+  place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
+  inside the frame `react-router` does the rest (`BrowserRouter` in `main.tsx`, the routes in `Shell.tsx`:
+  `/` overview, `/pages`, `/pages/new`, `/pages/:id`). The page list keeps its filters and page number in
+  the address (`../docs/DECISIONS.md` D-020, D-022).
+- **No Prettier config in this repo.** `npx prettier --write` with its defaults rewrites every file
+  (double quotes, semicolons). If you format, pass `--no-semi --single-quote --print-width 100` and
+  check `git diff --stat` for files you did not mean to touch.
 - **Three kinds of browser test.** `e2e` answers the API's calls itself (server down, a 500, no sites)
   and is what GitHub CI runs. `flow` is the real thing: it starts the **api repo** (`../api`) on its own
   port (`DEVFLOW_PORT_API` + 500) and database (`cms_wt<N>_flow`), creates the clients with the real seed

@@ -17,3 +17,12 @@ export const tenants = [
 ]
 
 export const adminRole = 'Administrator'
+
+/**
+ * A second person with one site no other test touches, so a test can count its pages exactly (the
+ * paging test needs a list nobody else adds to).
+ */
+export const solo = {
+  admin: { email: 'paula@birch.test', name: 'Paula Birch', password: 'birch-flow-password' },
+  tenant: { organization: 'Birch Studio Ltd', site: 'Birch Studio', host: 'birch.test' },
+}
