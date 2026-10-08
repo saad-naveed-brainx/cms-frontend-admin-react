@@ -200,6 +200,17 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
         state.pages.unshift(created)
         return fulfill(route, 201, created)
       }
+      const action = url.pathname.match(/^\/content\/([^/]+)\/(publish|unpublish)$/)
+      if (action && method === 'POST') {
+        const found = state.pages.find((item) => item.id === action[1])
+        if (!found) return fulfill(route, 404, { message: 'Page not found' })
+        if (action[2] === 'unpublish' && found.status !== 'published') {
+          return fulfill(route, 409, { message: 'This page is not published' })
+        }
+        found.status = action[2] === 'publish' ? 'published' : 'draft'
+        found.publishedAt = action[2] === 'publish' ? '2026-10-09T10:00:00.000Z' : null
+        return fulfill(route, 200, found)
+      }
       const one = url.pathname.match(/^\/content\/([^/]+)$/)
       if (one) {
         const found = state.pages.find((item) => item.id === one[1])

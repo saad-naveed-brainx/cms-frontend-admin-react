@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { ApiError } from './api.ts'
 import { describeFailure, formatDate, statusLabel } from './helpers.ts'
-import { fetchPage, savePage } from './pages-api.ts'
+import { fetchPage, publishPage, savePage, unpublishPage } from './pages-api.ts'
 import type { Page } from './pages-api.ts'
 import { useSignedIn } from './useSignedIn.ts'
 
@@ -16,7 +16,7 @@ type Answer = { key: string; loaded: Loaded }
 export default function EditPage() {
   const { id = '' } = useParams()
   const location = useLocation()
-  const { mayEdit } = useSignedIn()
+  const { mayEdit, canPublish } = useSignedIn()
 
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -29,6 +29,7 @@ export default function EditPage() {
     (location.state as { created?: boolean } | null)?.created ? 'Page created.' : null,
   )
   const [saving, setSaving] = useState(false)
+  const [statusBusy, setStatusBusy] = useState(false)
   const inFlight = useRef(false)
   const titleInput = useRef<HTMLInputElement>(null)
 
@@ -131,6 +132,32 @@ export default function EditPage() {
     }
   }
 
+  async function changeStatus(action: 'publish' | 'unpublish') {
+    if (inFlight.current) return
+    inFlight.current = true
+    setStatusBusy(true)
+    setNotice(null)
+    setFormError(null)
+    try {
+      const changedPage = await (action === 'publish' ? publishPage(id) : unpublishPage(id))
+      setAnswer({ key: requestKey, loaded: { status: 'ready', page: changedPage } })
+      setNotice(action === 'publish' ? 'Published.' : 'Unpublished.')
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        setAnswer({ key: requestKey, loaded: { status: 'not-found' } })
+        return
+      }
+      setFormError(
+        error instanceof ApiError && error.status === 409
+          ? 'This page is not published.'
+          : describeFailure(error, []).form,
+      )
+    } finally {
+      inFlight.current = false
+      setStatusBusy(false)
+    }
+  }
+
   return (
     <main className="wide">
       <Link className="back" to="/pages">
@@ -189,7 +216,19 @@ export default function EditPage() {
           <code>{page.path}</code>
         </dd>
         <dt>Status</dt>
-        <dd>{statusLabel(page.status)}</dd>
+        <dd>
+          {statusLabel(page.status)}
+          {canPublish && (
+            <button
+              type="button"
+              className="secondary inline-action"
+              disabled={statusBusy}
+              onClick={() => changeStatus(page.status === 'published' ? 'unpublish' : 'publish')}
+            >
+              {page.status === 'published' ? 'Unpublish' : 'Publish'}
+            </button>
+          )}
+        </dd>
         <dt>Last changed</dt>
         <dd>{formatDate(page.updatedAt)}</dd>
         <dt>Blocks</dt>
