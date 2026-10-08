@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
-import { flowApiUrl } from './env.ts'
+import { execFileSync } from 'node:child_process'
+import { flowApiUrl, flowDatabase } from './env.ts'
 import { admin } from './tenants.ts'
 
 type Person = { email: string; password: string }
@@ -27,6 +28,28 @@ export async function openSite(page: Page, siteId: string) {
 }
 
 /**
+ * SQL straight to the flow database, for the few things the API cannot do on purpose (a rich-text
+ * block from before the API refused them) or cannot do yet.
+ */
+export function sql(statement: string): void {
+  execFileSync('psql', [
+    `postgresql://localhost:5432/${flowDatabase}`,
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-q',
+    '-c',
+    statement,
+  ])
+}
+
+/** What a visitor's website is told about a site's page: the real public route, with no sign-in. */
+export async function publicPage(request: APIRequestContext, host: string, path = '/') {
+  const query = new URLSearchParams({ host, path })
+  const response = await request.get(`${flowApiUrl}/public/site?${query}`)
+  return { status: response.status(), body: await response.json() }
+}
+
+/**
  * The real API, called directly (not through the screen) as a signed-in person on one site, so a
  * test can make the pages it needs and check what the screen did.
  */
@@ -45,10 +68,15 @@ export async function realApi(request: APIRequestContext, person: Person, siteNa
 
   return {
     siteId: site.id,
-    async createPage(data: { type: string; title: string; slug: string }) {
+    async createPage(data: { type: string; title: string; slug: string; blocks?: object[] }) {
       const response = await request.post(`${flowApiUrl}/content`, { headers, data })
       expect(response.status(), `creating ${data.slug}`).toBe(201)
       return (await response.json()) as { id: string; title: string; path: string }
+    },
+    /** Saves through the real route, the way the editor does, and answers with its status. */
+    async patchPage(id: string, body: object) {
+      const response = await request.patch(`${flowApiUrl}/content/${id}`, { headers, data: body })
+      return { status: response.status(), body: await response.json() }
     },
     async getPage(id: string) {
       const response = await request.get(`${flowApiUrl}/content/${id}`, { headers })

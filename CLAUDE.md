@@ -45,6 +45,14 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new
   site and selects it, then the screen goes to `/pages` with a "Site created." notice. The notice rides in
   the history entry, so a reload of that page shows it again (as with "Page created.").
+- **The block editor** (`BlocksEditor.tsx`, `block-schemas.ts`, `block-drafts.ts`) is on the edit screen. A form
+  per block, no canvas. `block-schemas.ts` is a **stop-gap copy** of what each block can hold (the five blocks the
+  website draws, without `richText`): until the shared `cms-blocks` package exists (`../docs/DECISIONS.md` D-008,
+  ticket XRP-01) a block type or field changed there must be changed in `web/src/blocks/types.ts` and
+  `web/src/blocks/parse-blocks.ts` too. Empty fields are left out when saving; a block of a type the editor does not
+  know (rich text, anything unknown) is shown and saved exactly as it was; only what changed is sent; Publish waits
+  for unsaved changes, since publishing does not save them. Links and image addresses are checked with the same rule
+  the website applies (`https://`, `/`, `mailto:`, `tel:`), so a link the site would drop is refused here.
 - **No Prettier config in this repo.** `npx prettier --write` with its defaults rewrites every file
   (double quotes, semicolons). If you format, pass `--no-semi --single-quote --print-width 100` and
   check `git diff --stat` for files you did not mean to touch.

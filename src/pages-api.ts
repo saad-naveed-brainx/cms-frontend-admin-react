@@ -124,7 +124,11 @@ export async function createPage(body: {
   return answer
 }
 
-export async function savePage(id: string, body: { title: string }): Promise<Page> {
+/** Saves what changed: the title, the blocks, or both. */
+export async function savePage(
+  id: string,
+  body: { title?: string; blocks?: unknown[] },
+): Promise<Page> {
   const answer = await authed(`/content/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body,

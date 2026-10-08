@@ -158,6 +158,8 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
   const state = {
     pages: [...initial],
     calls: [] as string[],
+    /** The body of every PATCH (a save), in order. */
+    saved: [] as Record<string, unknown>[],
     override: null as Handler | null,
   }
 
@@ -217,7 +219,9 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
         if (!found) return fulfill(route, 404, { message: 'Page not found' })
         if (method === 'GET') return fulfill(route, 200, found)
         if (method === 'PATCH') {
-          Object.assign(found, request.postDataJSON(), { updatedAt: '2026-10-09T10:00:00.000Z' })
+          const body = request.postDataJSON() as Record<string, unknown>
+          state.saved.push(body)
+          Object.assign(found, body, { updatedAt: '2026-10-09T10:00:00.000Z' })
           return fulfill(route, 200, found)
         }
       }
