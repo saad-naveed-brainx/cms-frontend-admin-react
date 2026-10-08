@@ -1,4 +1,4 @@
-import { ApiError, NetworkError, problemsOf } from './api.ts'
+import { ApiError, NetworkError, isRecord, problemsOf } from './api.ts'
 
 /** The slug shape the API insists on: words of lower-case letters and digits joined by single hyphens. */
 export const SLUG_SHAPE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -81,4 +81,43 @@ export function describeFailure(error: unknown, fieldNames: string[]): FormProbl
     }
   }
   return { fields: {}, form: 'Something went wrong. Try again.' }
+}
+
+/** A web address as typed, without the spaces around it, a leading `https://` or a trailing slash. The API does the rest (capitals, the port). */
+export function tidyAddress(value: string): string {
+  return value
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/, '')
+}
+
+/** The host an address stands for once the API has tidied it: lower-case, with no port. */
+const hostOf = (value: string): string => tidyAddress(value).toLowerCase().replace(/:\d+$/, '')
+
+/**
+ * What to show after creating a site failed. Problems the API lists as `hostnames.N` go next to
+ * address N (the screen sends its addresses in order), a taken address goes next to the one that is
+ * taken, and the rest is one message.
+ */
+export function describeSiteFailure(error: unknown, addresses: string[]): FormProblems {
+  if (error instanceof ApiError && error.status === 409) {
+    const message = isRecord(error.body) ? String(error.body.message ?? '') : ''
+    const taken = /"([^"]+)"/.exec(message)?.[1]
+    const row = Math.max(
+      0,
+      addresses.findIndex((address) => hostOf(address) === taken),
+    )
+    return {
+      fields: { [`hostnames.${row}`]: 'That web address is already used by another site.' },
+      form: null,
+    }
+  }
+  if (error instanceof ApiError && error.status === 403) {
+    return { fields: {}, form: 'Only the owner of an organisation can create sites.' }
+  }
+  return describeFailure(error, [
+    'name',
+    'organizationId',
+    ...addresses.map((_, index) => `hostnames.${index}`),
+  ])
 }

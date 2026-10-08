@@ -5,7 +5,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
-const { FLOW_DATABASE, FLOW_API_PORT, FLOW_ADMIN_ORIGIN, FLOW_ADMIN, FLOW_TENANTS, FLOW_SOLO } =
+const { FLOW_DATABASE, FLOW_API_PORT, FLOW_ADMIN_ORIGIN, FLOW_ADMIN, FLOW_TENANTS, FLOW_PEOPLE } =
   process.env
 const apiDir = path.resolve(process.env.FLOW_API_DIR ?? '../api')
 
@@ -57,20 +57,21 @@ JSON.parse(FLOW_TENANTS).forEach((tenant, index) => {
   )
 })
 
-// A second person with a site of their own.
-const solo = JSON.parse(FLOW_SOLO)
-run(
-  'node',
-  [
-    'dist/cli/seed.js',
-    '--organization', solo.tenant.organization,
-    '--site', solo.tenant.site,
-    '--host', solo.tenant.host,
-    '--email', solo.admin.email,
-    '--name', solo.admin.name,
-  ],
-  { cwd: apiDir, env: { ...env, SEED_ADMIN_PASSWORD: solo.admin.password } },
-)
+// Other people, each with a site of their own.
+for (const person of JSON.parse(FLOW_PEOPLE)) {
+  run(
+    'node',
+    [
+      'dist/cli/seed.js',
+      '--organization', person.tenant.organization,
+      '--site', person.tenant.site,
+      '--host', person.tenant.host,
+      '--email', person.admin.email,
+      '--name', person.admin.name,
+    ],
+    { cwd: apiDir, env: { ...env, SEED_ADMIN_PASSWORD: person.admin.password } },
+  )
+}
 
 const server = spawn('node', ['dist/main.js'], { cwd: apiDir, env, stdio: 'inherit' })
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.kill(signal))

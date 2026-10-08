@@ -227,11 +227,102 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
   return state
 }
 
-/** Opens the app signed in as the mock person, on one site, with a role that holds exactly these permissions. */
-export async function signedInAs(page: Page, permissions: string[]) {
+/** What the mock `/auth/me` answers with. A test can change it while the page is open. */
+export type MockSession = { memberships: (typeof orchard)[]; meFails: boolean }
+
+/**
+ * Opens the app signed in as the mock person, on one site (or, with `sites: false`, on none), with
+ * a role that holds exactly these permissions. Returns the session the mock `/auth/me` answers from.
+ */
+export async function signedInAs(
+  page: Page,
+  permissions: string[],
+  options: { sites?: boolean } = {},
+): Promise<MockSession> {
   const membership = { ...orchard, role: { ...orchard.role, name: 'Tester' }, permissions }
-  await page.route('**/auth/me', (route) => fulfill(route, 200, profileBody([membership])))
+  const session: MockSession = {
+    memberships: options.sites === false ? [] : [membership],
+    meFails: false,
+  }
+  await page.route('**/auth/me', (route) =>
+    session.meFails
+      ? route.abort('connectionrefused')
+      : fulfill(route, 200, profileBody(session.memberships)),
+  )
   await seedStorage(page, {
     [SESSION_KEY]: JSON.stringify({ accessToken: 'saved-token', expiresAt: inDays(1) }),
   })
+  return session
+}
+
+// ---- creating a site (GOV-08a) ----
+
+export const orchardHoldings = {
+  id: '0198f2a0-0000-7000-8000-0000000000c1',
+  name: 'Orchard Holdings',
+}
+export const orchardSecond = {
+  id: '0198f2a0-0000-7000-8000-0000000000c2',
+  name: 'Orchard Second Ltd',
+}
+
+type SiteBody = { name: string; hostnames: string[]; organizationId?: string }
+
+/**
+ * A stand-in for the routes that create a site. A successful `POST /sites` is recorded in `posted`
+ * and adds the site to the session, so the next `/auth/me` lists it, as the real API does.
+ * `override` works as in `fakeContent`.
+ */
+export async function fakeSites(
+  page: Page,
+  session: MockSession,
+  organizations: { id: string; name: string }[],
+) {
+  const state = {
+    posted: [] as SiteBody[],
+    calls: [] as string[],
+    override: null as Handler | null,
+  }
+
+  await page.route(
+    (url) =>
+      url.port === String(flowApiPort) &&
+      (url.pathname === '/organizations' || url.pathname === '/sites'),
+    async (route, request) => {
+      const method = request.method()
+      state.calls.push(`${method} ${new URL(request.url()).pathname}`)
+      if (state.override && (await state.override(route, request))) return
+
+      if (method === 'GET') return fulfill(route, 200, { items: organizations })
+      if (method === 'POST') {
+        const body = request.postDataJSON() as SiteBody
+        state.posted.push(body)
+        const organization =
+          organizations.find((item) => item.id === body.organizationId) ?? organizations[0]
+        const site = {
+          id: `0198f2a0-0000-7000-8000-${String(900 + session.memberships.length).padStart(12, '0')}`,
+          name: body.name,
+        }
+        const membership = {
+          site,
+          role: { ...orchard.role, name: 'Administrator' },
+          permissions: [
+            'content.create',
+            'content.edit_any',
+            'content.edit_own',
+            'content.publish',
+          ],
+        }
+        session.memberships.push(membership)
+        return fulfill(route, 201, {
+          organization,
+          site,
+          hostnames: body.hostnames.map((hostname) => hostname.toLowerCase()),
+          membership,
+        })
+      }
+      return fulfill(route, 404, { message: 'Not found' })
+    },
+  )
+  return state
 }
