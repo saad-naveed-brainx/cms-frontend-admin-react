@@ -11,6 +11,7 @@
     "typecheck": "tsc -b --noEmit",
     "test:e2e": "playwright test --project=e2e",
     "test:visual": "playwright test --project=visual",
+    "test:flow": "FLOW=1 playwright test --project=flow",
     "tokens": "sh scripts/check-tokens.sh"
   },
   "dependencies": {
