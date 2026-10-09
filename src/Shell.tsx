@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react'
-import { ExternalLink, FileText, Globe, House, LayoutDashboard, Menu, Pin, Plus } from 'lucide-react'
+import {
+  ExternalLink,
+  FileText,
+  Globe,
+  House,
+  LayoutDashboard,
+  Menu,
+  Palette,
+  Pin,
+  Plus,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router'
 import type { Membership, User } from './api.ts'
+import Appearance from './Appearance.tsx'
 import EditPage from './EditPage.tsx'
 import { listPath, pluralLabel } from './helpers.ts'
 import { confirmLeaving } from './leave-guard.ts'
@@ -118,6 +129,7 @@ export default function Shell({ user, memberships, siteId }: Props) {
               <Route path="/pages" element={<PagesList key={current.site.id} />} />
               <Route path="/pages/new" element={<NewPage key={current.site.id} />} />
               <Route path="/pages/:id" element={<EditPage key={current.site.id} />} />
+              <Route path="/appearance" element={<Appearance key={current.site.id} />} />
             </>
           )}
           <Route path="*" element={current ? <NotFound /> : <NoSites />} />
@@ -138,7 +150,7 @@ type Entry = {
 /** The left menu. Keyed by site by its parent, so another site's content types are loaded afresh. */
 function AdminMenu({ hasSite }: { hasSite: boolean }) {
   const location = useLocation()
-  const { canCreate } = useSignedIn()
+  const { canCreate, canManageSettings } = useSignedIn()
   // null: the types could not be loaded, so one entry lists every type instead.
   const [types, setTypes] = useState<PageType[] | null | undefined>(undefined)
 
@@ -193,6 +205,16 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
               ]
             : []),
         ],
+      })
+    }
+    // As WordPress's Appearance: only for those who may change it (the API decides, invariant 3).
+    if (canManageSettings) {
+      entries.push({
+        label: 'Appearance',
+        to: '/appearance',
+        icon: Palette,
+        current: path === '/appearance',
+        sub: [],
       })
     }
   }

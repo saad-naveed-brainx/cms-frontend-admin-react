@@ -353,3 +353,33 @@ export async function fakeSites(
   )
   return state
 }
+
+/** What the mock `/appearance` holds: a site's name, tagline, footer note and stored theme (GOV-04). */
+export type FakeAppearance = {
+  name: string
+  tagline: string
+  footerNote: string
+  theme: Record<string, unknown>
+}
+
+/**
+ * A stand-in for `GET` and `PATCH /appearance`. `saved` records the body of every save, and a save is
+ * applied as the API would: what is sent replaces what was there.
+ */
+export async function fakeAppearance(page: Page, initial: FakeAppearance) {
+  const state = { appearance: { ...initial }, saved: [] as Record<string, unknown>[] }
+  await page.route(
+    (url) => url.port === String(flowApiPort) && url.pathname === '/appearance',
+    async (route, request) => {
+      if (request.method() === 'GET') return fulfill(route, 200, state.appearance)
+      if (request.method() === 'PATCH') {
+        const body = request.postDataJSON() as Record<string, unknown>
+        state.saved.push(body)
+        state.appearance = { ...state.appearance, ...body } as FakeAppearance
+        return fulfill(route, 200, state.appearance)
+      }
+      return fulfill(route, 404, { message: 'Not found' })
+    },
+  )
+  return state
+}

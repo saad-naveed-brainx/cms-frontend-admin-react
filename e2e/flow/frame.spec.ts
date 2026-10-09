@@ -22,7 +22,14 @@ test('[UC-BE-06] the menu has an entry per real content type, each listing its o
   await signInThroughTheScreen(page)
   await openSite(page, api.siteId)
   const menu = page.getByRole('navigation', { name: 'Main' })
-  await expect(menu.locator('.menu-top')).toHaveText(['Dashboard', 'Pages', 'Posts', 'Sites'])
+  // An administrator also has Appearance (settings.manage, GOV-04).
+  await expect(menu.locator('.menu-top')).toHaveText([
+    'Dashboard',
+    'Pages',
+    'Posts',
+    'Appearance',
+    'Sites',
+  ])
 
   await menu.getByRole('link', { name: 'Posts', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Posts' })).toBeVisible()

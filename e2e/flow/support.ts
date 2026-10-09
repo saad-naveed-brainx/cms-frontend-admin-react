@@ -78,6 +78,16 @@ export async function realApi(request: APIRequestContext, person: Person, siteNa
       const response = await request.patch(`${flowApiUrl}/content/${id}`, { headers, data: body })
       return { status: response.status(), body: await response.json() }
     },
+    /** Makes a page live, as the Publish button does. */
+    async publish(id: string) {
+      const response = await request.post(`${flowApiUrl}/content/${id}/publish`, { headers })
+      expect(response.status(), 'publishing').toBe(200)
+    },
+    /** The site's appearance as the real API keeps it (GOV-04). */
+    async getAppearance() {
+      const response = await request.get(`${flowApiUrl}/appearance`, { headers })
+      return { status: response.status(), body: await response.json() }
+    },
     async getPage(id: string) {
       const response = await request.get(`${flowApiUrl}/content/${id}`, { headers })
       return { status: response.status(), body: await response.json() }
