@@ -6,7 +6,7 @@ import BlocksEditor from './BlocksEditor.tsx'
 import { blockName, draftsFrom, focusField } from './block-drafts.ts'
 import type { Draft } from './block-drafts.ts'
 import { cleanBlock, sameBlocks, validateBlocks } from './block-schemas.ts'
-import { describeFailure, formatDate, statusLabel } from './helpers.ts'
+import { describeFailure, formatDate, listPath, pluralLabel, statusLabel } from './helpers.ts'
 import { fetchPage, publishPage, savePage, unpublishPage } from './pages-api.ts'
 import type { Page } from './pages-api.ts'
 import { useSignedIn } from './useSignedIn.ts'
@@ -64,7 +64,7 @@ export default function EditPage() {
 
   if (load === null) {
     return (
-      <main className="wide">
+      <main>
         <p role="status">Loading page…</p>
       </main>
     )
@@ -72,7 +72,7 @@ export default function EditPage() {
 
   if (load.status === 'not-found') {
     return (
-      <main className="wide">
+      <main>
         <h1>Page not found</h1>
         <p>This page is not on this site, or it has been removed.</p>
         <Link className="button" to="/pages">
@@ -84,7 +84,7 @@ export default function EditPage() {
 
   if (load.status === 'error') {
     return (
-      <main className="wide">
+      <main>
         <h1>Page</h1>
         <div className="problem">
           <p role="alert">Couldn't load this page.</p>
@@ -194,9 +194,9 @@ export default function EditPage() {
   }
 
   return (
-    <main className="wide">
-      <Link className="back" to="/pages">
-        ← Pages
+    <main>
+      <Link className="back" to={listPath(page.type.slug)}>
+        ← {pluralLabel(page.type.name)}
       </Link>
       <h1>{page.title}</h1>
       {notice && (
@@ -209,89 +209,102 @@ export default function EditPage() {
           You can read this page but not change it.
         </p>
       )}
-      <dl className="facts">
-        <dt>Type</dt>
-        <dd>{page.type.name}</dd>
-        <dt>Address</dt>
-        <dd>
-          <code>{page.path}</code>
-        </dd>
-        <dt>Status</dt>
-        <dd>
-          {statusLabel(page.status)}
-          {canPublish && (
-            <>
-              <button
-                type="button"
-                className="secondary inline-action"
-                disabled={statusBusy || changed}
-                onClick={() => changeStatus(page.status === 'published' ? 'unpublish' : 'publish')}
-              >
-                {page.status === 'published' ? 'Unpublish' : 'Publish'}
-              </button>
-              {changed && <span className="hint"> Save your changes first.</span>}
-            </>
-          )}
-        </dd>
-        <dt>Last changed</dt>
-        <dd>{formatDate(page.updatedAt)}</dd>
-      </dl>
-      <form className="form" noValidate onSubmit={save}>
-        <div className="field">
-          <label htmlFor="title">Title</label>
-          <input
-            id="title"
-            ref={titleInput}
-            value={title}
-            readOnly={!editable}
-            onChange={(event) => {
-              setTitle(event.target.value)
-              setNotice(null)
-            }}
-            aria-invalid={titleError !== null}
-            aria-describedby={titleError ? 'title-error' : undefined}
-          />
-          {titleError && (
-            <p id="title-error" className="field-error">
-              {titleError}
-            </p>
+      <form className="edit-layout" noValidate onSubmit={save}>
+        <div className="edit-main">
+          <div className="field title-field">
+            <label htmlFor="title">Title</label>
+            <input
+              id="title"
+              ref={titleInput}
+              value={title}
+              readOnly={!editable}
+              onChange={(event) => {
+                setTitle(event.target.value)
+                setNotice(null)
+              }}
+              aria-invalid={titleError !== null}
+              aria-describedby={titleError ? 'title-error' : undefined}
+            />
+            {titleError && (
+              <p id="title-error" className="field-error">
+                {titleError}
+              </p>
+            )}
+          </div>
+          {editable ? (
+            <BlocksEditor
+              drafts={drafts}
+              errors={blockErrors}
+              onChange={(next) => {
+                setDrafts(next)
+                setNotice(null)
+              }}
+            />
+          ) : (
+            <section className="blocks" aria-labelledby="blocks-heading">
+              <h2 id="blocks-heading">Blocks</h2>
+              {drafts.length === 0 ? (
+                <p>No blocks yet.</p>
+              ) : (
+                <ol>
+                  {drafts.map((draft) => (
+                    <li key={draft.key}>{blockName(draft.block)}</li>
+                  ))}
+                </ol>
+              )}
+            </section>
           )}
         </div>
-        {editable ? (
-          <BlocksEditor
-            drafts={drafts}
-            errors={blockErrors}
-            onChange={(next) => {
-              setDrafts(next)
-              setNotice(null)
-            }}
-          />
-        ) : (
-          <section className="blocks" aria-labelledby="blocks-heading">
-            <h2 id="blocks-heading">Blocks</h2>
-            {drafts.length === 0 ? (
-              <p>No blocks yet.</p>
-            ) : (
-              <ol>
-                {drafts.map((draft) => (
-                  <li key={draft.key}>{blockName(draft.block)}</li>
-                ))}
-              </ol>
+        <aside className="edit-side">
+          <div className="postbox">
+            <h2 className="postbox-title">Publish</h2>
+            <div className="postbox-inside">
+              <dl className="facts">
+                <dt>Type</dt>
+                <dd>{page.type.name}</dd>
+                <dt>Address</dt>
+                <dd>
+                  <code>{page.path}</code>
+                </dd>
+                <dt>Status</dt>
+                <dd>
+                  {statusLabel(page.status)}
+                  {canPublish && (
+                    <>
+                      <button
+                        type="button"
+                        className="secondary inline-action"
+                        disabled={statusBusy || changed}
+                        onClick={() =>
+                          changeStatus(page.status === 'published' ? 'unpublish' : 'publish')
+                        }
+                      >
+                        {page.status === 'published' ? 'Unpublish' : 'Publish'}
+                      </button>
+                      {changed && <span className="hint"> Save your changes first.</span>}
+                    </>
+                  )}
+                </dd>
+                <dt>Last changed</dt>
+                <dd>{formatDate(page.updatedAt)}</dd>
+              </dl>
+            </div>
+            {(editable || formError) && (
+              <div className="postbox-actions">
+                {formError && (
+                  <p role="alert" className="form-error">
+                    {formError}
+                  </p>
+                )}
+                {editable && (
+                  <button type="submit" disabled={saving || !changed} aria-busy={saving}>
+                    {saving ? 'Saving…' : 'Save'}
+                  </button>
+                )}
+              </div>
             )}
-          </section>
-        )}
-        {formError && (
-          <p role="alert" className="form-error">
-            {formError}
-          </p>
-        )}
-        {editable && (
-          <div className="actions">
-            <button type="submit" disabled={saving || !changed} aria-busy={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </button>
           </div>
-        )}
+        </aside>
       </form>
     </main>
   )

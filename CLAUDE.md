@@ -38,8 +38,14 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   so the token and `X-Site-Id` travel with them and a 401 ends the session; `src/api.ts` is the only
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (`BrowserRouter` in `main.tsx`, the routes in `Shell.tsx`:
-  `/` overview, `/pages`, `/pages/new`, `/pages/:id`, and `/sites/new`). The page list keeps its filters and
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/sites` and `/sites/new`). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
+- **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
+  Site switcher, New site, "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
+  Dashboard, **one entry per content type of the site** (from `GET /content-types`, so `/pages?type=<slug>`, with All …
+  and Add New; one "Content" entry if the types cannot load) and Sites. `/pages` with no type is "All content". The
+  menu folds to icons at 960 pixels and hides behind a Menu button at 782, as WordPress's does. Light only: the
+  colours are WordPress's admin palette, as tokens in `src/index.css`. Icons are `lucide-react`, pinned to an exact version.
 - **New site** (`/sites/new`, `NewSite.tsx`, `sites-api.ts`) is about the person, not one site, so it is
   routed even when they belong to none. The organisation is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
-import { STATUS_CHOICES, formatDate, statusLabel } from './helpers.ts'
+import { STATUS_CHOICES, formatDate, pluralLabel, statusLabel } from './helpers.ts'
 import { fetchPages, fetchTypes } from './pages-api.ts'
 import type { PageList, PageType } from './pages-api.ts'
 import { useSignedIn } from './useSignedIn.ts'
@@ -73,14 +73,18 @@ export default function PagesList() {
   }
 
   const filtered = type !== '' || status !== ''
+  const shownType = types.find((item) => item.slug === type)
+  // Until the types arrive, the slug stands in for the name ("post" reads "Posts").
+  const typeName = shownType?.name ?? (type ? type.charAt(0).toUpperCase() + type.slice(1) : null)
+  const newPath = type ? `/pages/new?type=${encodeURIComponent(type)}` : '/pages/new'
 
   return (
-    <main className="wide">
+    <main>
       <div className="heading-row">
-        <h1>Pages</h1>
+        <h1>{typeName ? pluralLabel(typeName) : 'All content'}</h1>
         {canCreate && (
-          <Link className="button" to="/pages/new">
-            New page
+          <Link className="button secondary" to={newPath}>
+            Add New {typeName ?? 'Page'}
           </Link>
         )}
       </div>
@@ -91,9 +95,11 @@ export default function PagesList() {
         </p>
       )}
 
-      <div className="filters">
-        <div className="field">
-          <label htmlFor="type-filter">Type</label>
+      <div className="tablenav">
+        <div className="filters">
+          <label htmlFor="type-filter" className="screen-reader-text">
+            Type
+          </label>
           <select
             id="type-filter"
             value={type}
@@ -106,9 +112,9 @@ export default function PagesList() {
               </option>
             ))}
           </select>
-        </div>
-        <div className="field">
-          <label htmlFor="status-filter">Status</label>
+          <label htmlFor="status-filter" className="screen-reader-text">
+            Status
+          </label>
           <select
             id="status-filter"
             value={status}
@@ -122,6 +128,34 @@ export default function PagesList() {
             ))}
           </select>
         </div>
+        {load.status === 'ready' && load.list.items.length > 0 && (
+          <div className="tablenav-pages">
+            <span className="count">
+              Showing {load.list.offset + 1}–{load.list.offset + load.list.items.length} of{' '}
+              {load.list.total}
+            </span>
+            <nav className="pager" aria-label="Pagination">
+              <button
+                type="button"
+                className="secondary small"
+                aria-label="Previous"
+                disabled={offset === 0}
+                onClick={() => change({ offset: String(Math.max(0, offset - PAGE_SIZE)) })}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="secondary small"
+                aria-label="Next"
+                disabled={offset + PAGE_SIZE >= load.list.total}
+                onClick={() => change({ offset: String(offset + PAGE_SIZE) })}
+              >
+                ›
+              </button>
+            </nav>
+          </div>
+        )}
       </div>
 
       {load.status === 'loading' && <p role="status">Loading pages…</p>}
@@ -139,7 +173,7 @@ export default function PagesList() {
         <div className="problem">
           <p>{filtered ? 'No pages match these filters.' : 'No pages yet.'}</p>
           {!filtered && canCreate && (
-            <Link className="button" to="/pages/new">
+            <Link className="button" to={newPath}>
               Create the first page
             </Link>
           )}
@@ -156,43 +190,50 @@ export default function PagesList() {
       )}
 
       {load.status === 'ready' && load.list.items.length > 0 && (
-        <>
-          <p className="count">
-            Showing {load.list.offset + 1}–{load.list.offset + load.list.items.length} of{' '}
-            {load.list.total}
-          </p>
-          <ul className="pages">
+        <table className="list-table">
+          <thead>
+            <tr>
+              <th scope="col">Title</th>
+              {!type && (
+                <th scope="col" className="hide-narrow">
+                  Type
+                </th>
+              )}
+              <th scope="col" className="hide-narrow">
+                Address
+              </th>
+              <th scope="col">Status</th>
+              <th scope="col" className="hide-narrow">
+                Last changed
+              </th>
+            </tr>
+          </thead>
+          <tbody>
             {load.list.items.map((page) => (
-              <li key={page.id}>
-                <Link className="page-title" to={`/pages/${page.id}`}>
-                  {page.title}
-                </Link>
-                <span className="meta">
-                  {page.type.name} · <code>{page.path}</code> · {statusLabel(page.status)} · Updated{' '}
-                  {formatDate(page.updatedAt)}
-                </span>
-              </li>
+              <tr key={page.id}>
+                <td className="title-col">
+                  <strong>
+                    <Link className="row-title" to={`/pages/${page.id}`}>
+                      {page.title}
+                    </Link>
+                    {page.status !== 'published' && (
+                      <span className="post-state"> — {statusLabel(page.status)}</span>
+                    )}
+                  </strong>
+                  <div className="row-actions">
+                    <Link to={`/pages/${page.id}`}>Edit</Link>
+                  </div>
+                </td>
+                {!type && <td className="hide-narrow">{page.type.name}</td>}
+                <td className="hide-narrow">
+                  <code>{page.path}</code>
+                </td>
+                <td>{statusLabel(page.status)}</td>
+                <td className="hide-narrow">{formatDate(page.updatedAt)}</td>
+              </tr>
             ))}
-          </ul>
-          <nav className="pager" aria-label="Pagination">
-            <button
-              type="button"
-              className="secondary"
-              disabled={offset === 0}
-              onClick={() => change({ offset: String(Math.max(0, offset - PAGE_SIZE)) })}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={offset + PAGE_SIZE >= load.list.total}
-              onClick={() => change({ offset: String(offset + PAGE_SIZE) })}
-            >
-              Next
-            </button>
-          </nav>
-        </>
+          </tbody>
+        </table>
       )}
     </main>
   )

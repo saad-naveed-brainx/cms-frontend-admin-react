@@ -205,7 +205,7 @@ for (const id of ['0198f2a0-0000-7000-8000-0000000009ff', 'not-an-id']) {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible()
     await page.getByRole('link', { name: 'Back to pages' }).click()
-    await expect(page.getByRole('heading', { level: 1, name: 'Pages' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'All content' })).toBeVisible()
   })
 }
 

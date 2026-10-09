@@ -51,7 +51,7 @@ export default function NewSite() {
 
   if (unconfirmed !== null) {
     return (
-      <main className="wide">
+      <main>
         <h1>New site</h1>
         <div className="problem">
           <p role="status">
@@ -67,7 +67,7 @@ export default function NewSite() {
 
   if (organizations === null) {
     return (
-      <main className="wide">
+      <main>
         <h1>New site</h1>
         <div className="problem">
           <p role="alert">Couldn't load your organisations.</p>
@@ -81,7 +81,7 @@ export default function NewSite() {
 
   if (organizations === undefined) {
     return (
-      <main className="wide">
+      <main>
         <h1>New site</h1>
         <p role="status">Loading…</p>
       </main>
@@ -90,7 +90,7 @@ export default function NewSite() {
 
   if (organizations.length === 0) {
     return (
-      <main className="wide">
+      <main>
         <h1>New site</h1>
         <p role="status">Only the owner of an organisation can create sites.</p>
       </main>
@@ -167,7 +167,7 @@ export default function NewSite() {
   }
 
   return (
-    <main className="wide">
+    <main>
       <Link className="back" to="/">
         ← Overview
       </Link>

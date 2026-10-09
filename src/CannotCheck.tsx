@@ -4,16 +4,18 @@ import { retry, signOut } from './session.ts'
 export default function CannotCheck() {
   return (
     <main className="auth">
-      <p className="eyebrow">CMS admin</p>
-      <h1>We couldn't check your session</h1>
-      <p role="alert">Your session is still saved. Check your connection and try again.</p>
-      <div className="actions">
-        <button type="button" onClick={() => retry()}>
-          Try again
-        </button>
-        <button type="button" className="secondary" onClick={() => signOut()}>
-          Sign out
-        </button>
+      <p className="login-logo">CMS admin</p>
+      <div className="login-box">
+        <h1>We couldn't check your session</h1>
+        <p role="alert">Your session is still saved. Check your connection and try again.</p>
+        <div className="actions">
+          <button type="button" onClick={() => retry()}>
+            Try again
+          </button>
+          <button type="button" className="secondary" onClick={() => signOut()}>
+            Sign out
+          </button>
+        </div>
       </div>
     </main>
   )

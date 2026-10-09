@@ -31,6 +31,20 @@ export const STATUS_CHOICES = Object.entries(STATUS_LABELS)
 
 export const statusLabel = (status: string): string => STATUS_LABELS[status] ?? status
 
+/**
+ * A content type's name for a menu or a list heading: "Page" is "Pages", "Story" is "Stories".
+ * A stop-gap for English names until a content type carries its own plural label.
+ */
+export function pluralLabel(name: string): string {
+  if (/s$/i.test(name)) return name
+  if (/[^aeiou]y$/i.test(name)) return `${name.slice(0, -1)}ies`
+  return `${name}s`
+}
+
+/** The list screen for one content type, or for all of them. */
+export const listPath = (typeSlug?: string | null): string =>
+  typeSlug ? `/pages?type=${encodeURIComponent(typeSlug)}` : '/pages'
+
 /** "8 Oct 2026", in UTC so the same page reads the same everywhere. */
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', {

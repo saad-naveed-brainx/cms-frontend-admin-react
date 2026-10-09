@@ -24,7 +24,7 @@ const ENDED = 'Your session has ended. Sign in again.'
 const signInHeading = (page: Page) =>
   page.getByRole('heading', { level: 1, name: 'Sign in' })
 const siteHeading = (page: Page, name: string) =>
-  page.getByRole('heading', { level: 1, name })
+  page.getByRole('heading', { name, exact: true })
 
 async function fillAndSubmit(page: Page, email = 'olivia@orchard.test', password = 'a password') {
   await page.getByLabel('Email').fill(email)
