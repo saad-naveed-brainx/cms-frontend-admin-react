@@ -30,6 +30,32 @@ const pages = [
   fakePage(6, { title: 'Contact', slug: 'contact' }),
 ]
 
+const withBlocks = fakePage(7, {
+  title: 'Welcome to Orchard Bakery',
+  slug: 'welcome-blocks',
+  blocks: [
+    {
+      type: 'hero',
+      eyebrow: 'Baked at dawn',
+      headline: 'Fresh bread, every morning',
+      body: 'Sourdough, rye and seeded loaves from our own oven.',
+      primaryAction: { label: 'Order now', href: '/shop' },
+      image: { src: 'https://example.com/loaf.jpg', alt: 'A loaf of sourdough' },
+    },
+    {
+      type: 'featureGrid',
+      heading: 'Why Orchard',
+      ordered: true,
+      items: [
+        { title: 'Slow dough', body: 'Proved for two days.' },
+        { title: 'Local flour', body: 'Milled twenty miles away.' },
+      ],
+    },
+    { type: 'richText', html: '<p>Stored before the rule</p>' },
+    { type: 'cta', heading: 'Visit us', action: { label: 'Find the shop', href: '/contact' } },
+  ],
+})
+
 for (const width of [375, 768, 1280]) {
   test.describe(`at ${width}px`, () => {
     test.use({ viewport: { width, height: 800 } })
@@ -49,6 +75,14 @@ for (const width of [375, 768, 1280]) {
       await page.getByLabel('Title').fill('Our story')
       await expect(page.getByText('Address: /our-story')).toBeVisible()
       await expect(page).toHaveScreenshot(`new-page-${width}.png`, { fullPage: true })
+    })
+
+    test('[UC-RS-21] the edit page with blocks looks as approved', async ({ page }) => {
+      await fakeContent(page, [withBlocks])
+      await signedInAs(page, EVERYTHING)
+      await page.goto(`/pages/${withBlocks.id}`)
+      await expect(page.getByRole('heading', { level: 3 })).toHaveCount(4)
+      await expect(page).toHaveScreenshot(`edit-page-blocks-${width}.png`, { fullPage: true })
     })
 
     test('[UC-CS-13] the edit page screen looks as approved', async ({ page }) => {

@@ -36,5 +36,14 @@ export const maker = {
   tenant: { organization: 'Maker Collective', site: 'Maker Studio', host: 'maker.test' },
 }
 
+/**
+ * A fourth person, who walks the whole way through the screens (create a site, a page, add a block,
+ * publish) in one test. She makes a site there, so her list of sites changes, and no other test uses her.
+ */
+export const finisher = {
+  admin: { email: 'fay@finish.test', name: 'Fay Finish', password: 'finish-flow-password' },
+  tenant: { organization: 'Finish Line Ltd', site: 'Finish Studio', host: 'finish.test' },
+}
+
 /** Everyone with a site of their own, each made by the real seed command. */
-export const people = [solo, maker]
+export const people = [solo, maker, finisher]

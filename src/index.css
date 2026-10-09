@@ -96,7 +96,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   font: inherit;
   color: inherit;
   background: var(--surface);
@@ -106,8 +107,13 @@ select {
   max-width: 100%;
 }
 
-input[aria-invalid='true'] {
+input[aria-invalid='true'],
+textarea[aria-invalid='true'] {
   border-color: var(--danger);
+}
+
+textarea {
+  resize: vertical;
 }
 
 :focus-visible {
@@ -370,4 +376,97 @@ dl.facts dd {
 .address-row input {
   flex: 1;
   min-width: 0;
+}
+
+/* The block editor */
+.blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.blocks h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+ol.block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.block-card {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.block-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.block-bar h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.block-actions,
+.block-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+button.small {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.875rem;
+}
+
+fieldset.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+fieldset.group legend {
+  padding: 0 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.list-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.5rem;
+}
+
+.entry-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
