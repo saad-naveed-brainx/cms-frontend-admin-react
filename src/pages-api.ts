@@ -150,3 +150,15 @@ export async function unpublishPage(id: string): Promise<Page> {
   if (!isPage(answer)) throw unusable()
   return answer
 }
+
+/**
+ * A 30-minute link that shows the page as last saved on its site, published or not. The API
+ * answers `{ token, expiresAt }`; the website opens it as `?preview=<token>`.
+ */
+export async function requestPreview(id: string): Promise<{ token: string; expiresAt: string }> {
+  const answer = await authed(`/content/${encodeURIComponent(id)}/preview`, { method: 'POST' })
+  if (!isRecord(answer) || typeof answer.token !== 'string' || typeof answer.expiresAt !== 'string') {
+    throw unusable()
+  }
+  return { token: answer.token, expiresAt: answer.expiresAt }
+}

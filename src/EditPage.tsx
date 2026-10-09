@@ -7,9 +7,9 @@ import { blockName, draftsFrom, focusField } from './block-drafts.ts'
 import type { Draft } from './block-drafts.ts'
 import { cleanBlock, sameBlocks, validateBlocks } from './block-schemas.ts'
 import { describeFailure, formatDate, listPath, pluralLabel, statusLabel } from './helpers.ts'
-import { fetchPage, publishPage, savePage, unpublishPage } from './pages-api.ts'
+import { fetchPage, publishPage, requestPreview, savePage, unpublishPage } from './pages-api.ts'
 import type { Page } from './pages-api.ts'
-import { external, siteUrl } from './site-links.ts'
+import { external, previewUrl, siteUrl } from './site-links.ts'
 import { useSignedIn } from './useSignedIn.ts'
 
 type Loaded = { status: 'not-found' } | { status: 'error' } | { status: 'ready'; page: Page }
@@ -37,6 +37,7 @@ export default function EditPage() {
   )
   const [saving, setSaving] = useState(false)
   const [statusBusy, setStatusBusy] = useState(false)
+  const [previewBusy, setPreviewBusy] = useState(false)
   const inFlight = useRef(false)
   const titleInput = useRef<HTMLInputElement>(null)
 
@@ -194,6 +195,34 @@ export default function EditPage() {
     }
   }
 
+  /**
+   * Opens the page as last saved on its own site, through a 30-minute preview link. The tab opens
+   * at the click, before the link is asked for, so the browser does not treat it as a pop-up; the
+   * site's address is set once the link arrives, and the tab gets no hold on the admin.
+   */
+  async function openPreview() {
+    if (!siteHost || previewBusy) return
+    const tab = window.open('', '_blank')
+    if (tab) tab.opener = null
+    setPreviewBusy(true)
+    setFormError(null)
+    try {
+      const { token } = await requestPreview(id)
+      const address = previewUrl(siteHost, page.path, token)
+      if (tab) tab.location.href = address
+      else window.open(address, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      tab?.close()
+      if (error instanceof ApiError && error.status === 404) {
+        setAnswer({ key: requestKey, loaded: { status: 'not-found' } })
+        return
+      }
+      setFormError(describeFailure(error, []).form)
+    } finally {
+      setPreviewBusy(false)
+    }
+  }
+
   return (
     <main>
       <Link className="back" to={listPath(page.type.slug)}>
@@ -297,12 +326,24 @@ export default function EditPage() {
                 </p>
               )}
             </div>
-            {(editable || formError) && (
+            {(editable || formError || siteHost) && (
               <div className="postbox-actions">
                 {formError && (
                   <p role="alert" className="form-error">
                     {formError}
                   </p>
+                )}
+                {siteHost && (
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={previewBusy || changed}
+                    aria-busy={previewBusy}
+                    title={changed ? 'Save your changes first: a preview shows the page as saved.' : undefined}
+                    onClick={() => void openPreview()}
+                  >
+                    Preview
+                  </button>
                 )}
                 {editable && (
                   <button type="submit" disabled={saving || !changed} aria-busy={saving}>
