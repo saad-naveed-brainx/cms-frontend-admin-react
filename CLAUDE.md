@@ -55,7 +55,8 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `https://cafe.example.com/`. `/home` links to `/`. Visit Site (bar), Visit site (Dashboard), View (published rows only),
   View page (published edit screen) and Visit (Sites screen) open in a new tab. Every browser test runs the admin with
   `http` and port 3000 (`siteLinkEnv` in `e2e/flow/env.ts`), so expected links are exact.
-  **Preview** (Publish box, any member, `../docs/DECISIONS.md` D-029) asks `POST /content/:id/preview` and opens
+  **Preview** (Publish box, any member, `../docs/DECISIONS.md` D-029; only while the page is not published: once it is, View page
+  shows the same saved page, D-035) asks `POST /content/:id/preview` and opens
   `previewUrl(host, path, token)` (`<page address>?preview=<token>`): the tab is opened at the click, before the
   request, so it is not blocked as a pop-up, gets `opener = null`, and closes again if no link can be had. It waits
   for unsaved changes, because a preview shows the page as saved.
