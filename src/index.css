@@ -800,6 +800,46 @@ dl.facts dd {
   margin-top: 12px;
 }
 
+/*
+ * When the browser scrolls a field into view (the cursor moving into it, a problem focusing it), it
+ * keeps it clear of the fixed bar on top and of the Save bar along the bottom of the edit screen.
+ */
+html {
+  scroll-padding-top: calc(var(--bar-height) + 12px);
+  scroll-padding-bottom: 72px;
+}
+
+/* Save, in view at the bottom of the edit screen however long the page: it sticks to the window's bottom edge */
+.save-bar {
+  grid-column: 1 / -1;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  box-shadow: 0 -1px 3px var(--wp-shadow);
+}
+
+.save-bar-state {
+  margin: 0 auto 0 0;
+  color: var(--wp-muted);
+}
+
+.save-bar .form-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.save-first {
+  margin: 12px 0 0;
+}
+
 /* The search engines box (SEO-01): a search result preview, then the fields */
 .seo-inside {
   display: flex;

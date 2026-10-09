@@ -34,8 +34,10 @@ test('[UC-BE-06] the menu has an entry per real content type, each listing its o
   await expect(page.getByRole('link', { name: `Menu page ${token}` })).toBeVisible()
   await expect(page.getByRole('link', { name: `Menu post ${token}` })).toHaveCount(0)
 
-  // Add New under Posts makes a post, at the post type's address.
+  // Add New under Posts makes a post, at the post type's address. Only the open section shows its
+  // Add New, so wait for Posts to open first, or the click can land on the Pages one.
   await menu.getByRole('link', { name: 'Posts', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Posts' })).toBeVisible()
   await menu.getByRole('link', { name: 'Add New' }).click()
   await page.getByLabel('Title', { exact: true }).fill(`Added post ${token}`)
   await page.getByRole('button', { name: 'Create page' }).click()

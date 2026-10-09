@@ -5,6 +5,7 @@ import { Link, Route, Routes, useLocation, useNavigate } from 'react-router'
 import type { Membership, User } from './api.ts'
 import EditPage from './EditPage.tsx'
 import { listPath, pluralLabel } from './helpers.ts'
+import { confirmLeaving } from './leave-guard.ts'
 import NewPage from './NewPage.tsx'
 import NewSite from './NewSite.tsx'
 import NotFound from './NotFound.tsx'
@@ -37,6 +38,8 @@ export default function Shell({ user, memberships, siteId }: Props) {
   }
 
   function changeSite(id: string) {
+    // Another site's screens replace this one at once, so unsaved changes are asked about first.
+    if (!confirmLeaving()) return
     selectSite(id)
     // A page belongs to one site, so leave it for the list.
     if (location.pathname.startsWith('/pages/')) navigate('/pages')
@@ -91,7 +94,11 @@ export default function Shell({ user, memberships, siteId }: Props) {
           <span className="adminbar-item user">
             Howdy, <strong>{user.name}</strong>
           </span>
-          <button type="button" className="adminbar-item" onClick={() => signOut()}>
+          <button
+            type="button"
+            className="adminbar-item"
+            onClick={() => confirmLeaving() && signOut()}
+          >
             Sign out
           </button>
         </div>

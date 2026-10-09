@@ -8,6 +8,7 @@ import { blockName, draftsFrom, focusField } from './block-drafts.ts'
 import type { Draft } from './block-drafts.ts'
 import { cleanBlock, sameBlocks, validateBlocks } from './block-schemas.ts'
 import { describeFailure, formatDate, listPath, pluralLabel, statusLabel } from './helpers.ts'
+import { useLeaveGuard } from './leave-guard.ts'
 import { fetchPage, publishPage, requestPreview, savePage, unpublishPage } from './pages-api.ts'
 import type { Page } from './pages-api.ts'
 import SeoBox from './SeoBox.tsx'
@@ -77,6 +78,19 @@ export default function EditPage() {
     }
   }, [id, requestKey])
 
+  // What differs from the page as saved. Worked out before anything is shown, as leaving asks first while there is any.
+  const saved = load?.status === 'ready' ? load.page : null
+  const titleChanged = saved !== null && title.trim() !== saved.title
+  const blocksChanged =
+    saved !== null &&
+    !sameBlocks(
+      drafts.map((draft) => cleanBlock(draft.block)),
+      saved.blocks,
+    )
+  const seoBody = saved ? seoChanges(seo, saved) : {}
+  const changed = titleChanged || blocksChanged || Object.keys(seoBody).length > 0
+  useLeaveGuard(changed)
+
   if (load === null) {
     return (
       <main>
@@ -113,13 +127,6 @@ export default function EditPage() {
 
   const { page } = load
   const editable = mayEdit(page.createdBy)
-  const titleChanged = title.trim() !== page.title
-  const blocksChanged = !sameBlocks(
-    drafts.map((draft) => cleanBlock(draft.block)),
-    page.blocks,
-  )
-  const seoBody = seoChanges(seo, page)
-  const changed = titleChanged || blocksChanged || Object.keys(seoBody).length > 0
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -355,13 +362,17 @@ export default function EditPage() {
                       >
                         {page.status === 'published' ? 'Unpublish' : 'Publish'}
                       </button>
-                      {changed && <span className="hint"> Save your changes first.</span>}
                     </>
                   )}
                 </dd>
                 <dt>Last changed</dt>
                 <dd>{formatDate(page.updatedAt)}</dd>
               </dl>
+              {changed && (canPublish || siteHost) && (
+                <p className="hint save-first">
+                  Save your changes first. Preview and Publish use the saved page.
+                </p>
+              )}
               {page.status === 'published' && siteHost && (
                 <p className="view-link">
                   <a href={siteUrl(siteHost, page.path)} {...external}>
@@ -370,9 +381,9 @@ export default function EditPage() {
                 </p>
               )}
             </div>
-            {(editable || formError || siteHost) && (
+            {(siteHost || (!editable && formError)) && (
               <div className="postbox-actions">
-                {formError && (
+                {!editable && formError && (
                   <p role="alert" className="form-error">
                     {formError}
                   </p>
@@ -389,16 +400,27 @@ export default function EditPage() {
                     Preview
                   </button>
                 )}
-                {editable && (
-                  <button type="submit" disabled={saving || !changed} aria-busy={saving}>
-                    {saving ? 'Saving…' : 'Save'}
-                  </button>
-                )}
               </div>
             )}
           </div>
           <LivePreview blocks={drafts.map((draft) => cleanBlock(draft.block))} theme={siteTheme} />
         </aside>
+        {/* Save stays in view at the bottom of the screen, however long the page, as the block editor keeps its own. */}
+        {editable && (
+          <div className="save-bar">
+            <p className="save-bar-state">
+              {changed ? 'You have unsaved changes.' : 'No unsaved changes.'}
+            </p>
+            {formError && (
+              <p role="alert" className="form-error">
+                {formError}
+              </p>
+            )}
+            <button type="submit" disabled={saving || !changed} aria-busy={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        )}
       </form>
     </main>
   )
