@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams } from 'react-router'
 import { STATUS_CHOICES, formatDate, pluralLabel, statusLabel } from './helpers.ts'
 import { fetchPages, fetchTypes } from './pages-api.ts'
 import type { PageList, PageType } from './pages-api.ts'
+import { external, siteUrl } from './site-links.ts'
 import { useSignedIn } from './useSignedIn.ts'
 
 const PAGE_SIZE = 25
@@ -14,7 +15,7 @@ type Answer = { key: string; list: PageList | null }
 
 /** The site's pages, last changed first. The filters and the page number live in the address, so a reload or a shared link shows the same list. */
 export default function PagesList() {
-  const { canCreate } = useSignedIn()
+  const { canCreate, siteHost } = useSignedIn()
   const location = useLocation()
   const [params, setParams] = useSearchParams()
   // Creating a site lands here, on the new site's own list.
@@ -222,6 +223,15 @@ export default function PagesList() {
                   </strong>
                   <div className="row-actions">
                     <Link to={`/pages/${page.id}`}>Edit</Link>
+                    {/* Only a published page is on the website; anything else is its 404. */}
+                    {page.status === 'published' && siteHost && (
+                      <>
+                        {' | '}
+                        <a href={siteUrl(siteHost, page.path)} {...external}>
+                          View
+                        </a>
+                      </>
+                    )}
                   </div>
                 </td>
                 {!type && <td className="hide-narrow">{page.type.name}</td>}

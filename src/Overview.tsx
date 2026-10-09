@@ -1,13 +1,14 @@
 import { Link } from 'react-router'
 import type { Membership, User } from './api.ts'
 import { listPath } from './helpers.ts'
+import { external, siteUrl } from './site-links.ts'
 import { useSignedIn } from './useSignedIn.ts'
 
 type Props = { user: User; membership: Membership }
 
 /** The Dashboard, the first screen after signing in: which site, who you are there, what your role allows, and where to start. */
 export default function Overview({ user, membership }: Props) {
-  const { canCreate } = useSignedIn()
+  const { canCreate, siteHost } = useSignedIn()
 
   return (
     <main>
@@ -26,6 +27,11 @@ export default function Overview({ user, membership }: Props) {
           <Link className="button secondary" to={listPath('page')}>
             See all pages
           </Link>
+          {siteHost && (
+            <a className="button secondary" href={siteUrl(siteHost)} {...external}>
+              Visit site
+            </a>
+          )}
         </div>
       </section>
       <section className="postbox" aria-labelledby="role-heading">

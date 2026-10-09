@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, Globe, House, LayoutDashboard, Menu, Pin, Plus } from 'lucide-react'
+import { ExternalLink, FileText, Globe, House, LayoutDashboard, Menu, Pin, Plus } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router'
 import type { Membership, User } from './api.ts'
@@ -13,6 +13,7 @@ import { fetchTypes } from './pages-api.ts'
 import type { PageType } from './pages-api.ts'
 import PagesList from './PagesList.tsx'
 import { selectSite, signOut } from './session.ts'
+import { external, siteUrl } from './site-links.ts'
 import Sites from './Sites.tsx'
 import { useSignedIn } from './useSignedIn.ts'
 
@@ -76,9 +77,15 @@ export default function Shell({ user, memberships, siteId }: Props) {
             </span>
           )
         )}
+        {current?.site.primaryHost && (
+          <a className="adminbar-item" href={siteUrl(current.site.primaryHost)} {...external}>
+            <ExternalLink aria-hidden="true" size={16} />
+            <span className="adminbar-label">Visit Site</span>
+          </a>
+        )}
         <Link className="adminbar-item" to="/sites/new">
           <Plus aria-hidden="true" size={18} />
-          New site
+          <span className="adminbar-label">New site</span>
         </Link>
         <div className="adminbar-end">
           <span className="adminbar-item user">

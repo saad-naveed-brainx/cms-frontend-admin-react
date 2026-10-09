@@ -9,6 +9,7 @@ import { cleanBlock, sameBlocks, validateBlocks } from './block-schemas.ts'
 import { describeFailure, formatDate, listPath, pluralLabel, statusLabel } from './helpers.ts'
 import { fetchPage, publishPage, savePage, unpublishPage } from './pages-api.ts'
 import type { Page } from './pages-api.ts'
+import { external, siteUrl } from './site-links.ts'
 import { useSignedIn } from './useSignedIn.ts'
 
 type Loaded = { status: 'not-found' } | { status: 'error' } | { status: 'ready'; page: Page }
@@ -20,7 +21,7 @@ type Answer = { key: string; loaded: Loaded }
 export default function EditPage() {
   const { id = '' } = useParams()
   const location = useLocation()
-  const { mayEdit, canPublish } = useSignedIn()
+  const { mayEdit, canPublish, siteHost } = useSignedIn()
 
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -288,6 +289,13 @@ export default function EditPage() {
                 <dt>Last changed</dt>
                 <dd>{formatDate(page.updatedAt)}</dd>
               </dl>
+              {page.status === 'published' && siteHost && (
+                <p className="view-link">
+                  <a href={siteUrl(siteHost, page.path)} {...external}>
+                    View page
+                  </a>
+                </p>
+              )}
             </div>
             {(editable || formError) && (
               <div className="postbox-actions">
