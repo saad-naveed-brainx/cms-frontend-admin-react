@@ -17,5 +17,10 @@ export function siteUrl(host: string, path = '/'): string {
   return `${scheme}://${host}${port}${shown.startsWith('/') ? shown : `/${shown}`}`
 }
 
+/** A page opened through a preview link: the page's own address, with the link's token. */
+export function previewUrl(host: string, path: string, token: string): string {
+  return `${siteUrl(host, path)}?preview=${encodeURIComponent(token)}`
+}
+
 /** What every link to the website carries: it opens in a new tab, and the website gets no hold on the admin. */
 export const external = { target: '_blank', rel: 'noopener noreferrer' } as const

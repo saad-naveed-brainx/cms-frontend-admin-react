@@ -52,6 +52,10 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `https://cafe.example.com/`. `/home` links to `/`. Visit Site (bar), Visit site (Dashboard), View (published rows only),
   View page (published edit screen) and Visit (Sites screen) open in a new tab. Every browser test runs the admin with
   `http` and port 3000 (`siteLinkEnv` in `e2e/flow/env.ts`), so expected links are exact.
+  **Preview** (Publish box, any member, `../docs/DECISIONS.md` D-029) asks `POST /content/:id/preview` and opens
+  `previewUrl(host, path, token)` (`<page address>?preview=<token>`): the tab is opened at the click, before the
+  request, so it is not blocked as a pop-up, gets `opener = null`, and closes again if no link can be had. It waits
+  for unsaved changes, because a preview shows the page as saved.
 - **New site** (`/sites/new`, `NewSite.tsx`, `sites-api.ts`) is about the person, not one site, so it is
   routed even when they belong to none. The organisation is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new
