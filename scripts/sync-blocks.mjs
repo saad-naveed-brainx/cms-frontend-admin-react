@@ -20,7 +20,18 @@ const target = join(admin, 'src', 'site-blocks')
 
 /** What is copied: whole folders, and single files the blocks and the theme import. */
 const FOLDERS = ['src/blocks', 'src/theme']
-const FILES = ['src/lib/guards.ts', 'src/site/resolve-theme.ts', 'src/site/default-theme.ts']
+const FILES = [
+  'src/lib/guards.ts',
+  'src/site/resolve-theme.ts',
+  'src/site/default-theme.ts',
+  // The site frame and the ready-made palettes, for the Appearance screen's preview (GOV-04).
+  'src/site/SiteChrome.tsx',
+  'src/site/SiteHeader.tsx',
+  'src/site/SiteFooter.tsx',
+  'src/site/types.ts',
+  'src/site/palettes.ts',
+  'src/site/contrast.ts',
+]
 /** Only this admin-side note lives in the copy without an original. */
 const OWN = new Set(['README.md'])
 

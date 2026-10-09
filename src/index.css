@@ -905,6 +905,93 @@ html {
   margin-top: 10px;
 }
 
+/* The Appearance screen (GOV-04): fields stacked in each box, palettes as swatches, colour pickers */
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-stack p {
+  margin: 0;
+}
+
+fieldset.palettes,
+fieldset.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+fieldset.palettes legend,
+fieldset.choices legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wp-heading);
+}
+
+.palette-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-weight: 400;
+  border: 1px solid var(--wp-border-light);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.palette-choice:has(input:checked) {
+  border-color: var(--wp-blue);
+  box-shadow: 0 0 0 1px var(--wp-blue);
+}
+
+.palette-choice input {
+  min-height: 0;
+}
+
+.palette-name {
+  flex: 1;
+}
+
+.swatches {
+  display: flex;
+}
+
+.swatch {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--wp-border);
+  border-radius: 50%;
+}
+
+.swatch + .swatch {
+  margin-left: -6px;
+}
+
+.colour-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 16px;
+}
+
+input[type='color'] {
+  width: 64px;
+  height: 34px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+fieldset.choices label.check .hint {
+  margin-left: 2px;
+}
+
 /* The New site form: an address and, for the extra ones, a button to remove it */
 .address-row {
   display: flex;

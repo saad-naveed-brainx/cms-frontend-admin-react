@@ -26,6 +26,16 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   screens stay plain CSS (`src/index.css`). Fonts are self-hosted `@fontsource` packages, named as web's
   `next/font` names them (`--font-fraunces` and so on). `@/` points at `src/site-blocks` (`vite.config.ts`,
   `tsconfig.app.json`), so the copied files import exactly as they do in web.
+- **The preview frame** (`PreviewFrame.tsx`) is the box both previews share: the Desktop/Mobile views, the same-origin frame and the portal.
+  `src/site-blocks/site/` also holds exact copies of the website's site frame (`SiteChrome`, `SiteHeader`, `SiteFooter`,
+  `types.ts`) and its ready-made palettes and contrast helper (`palettes.ts`, `contrast.ts`), for the Appearance screen.
+- **Appearance** (`/appearance`, `Appearance.tsx`, `appearance-draft.ts`, `appearance-api.ts`, GOV-04, `../docs/DECISIONS.md`
+  D-036): the site's name, tagline, footer note and look, with the website's own header, home page and footer in the
+  preview. Colours start from a ready-made palette, then the brand and accent colours (text on the brand colour is chosen
+  for contrast; a faint accent or brand is warned about, not refused). Save sends only what changed (the theme whole),
+  then asks `/auth/me` again so the top bar and the edit screen's preview use the new name and theme. In the menu only
+  with `settings.manage`; opened without it, the screen is read-only. Tests write expected colours out rather than
+  importing `src/site-blocks` (the test tsconfig does not resolve its `@/` imports).
 - **The live preview** (`LivePreview.tsx`, `../docs/DECISIONS.md` D-030) sits under the Publish box on the edit screen
   and draws `drafts.map(cleanBlock)` (what Save would send) with web's `parseBlocks`, `BlockRenderer` and
   `SiteThemeRoot`, in the site's theme from sign-in (`site.theme`, laid over the default with `resolveTheme`).
@@ -96,7 +106,7 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `devflow-wt new <slug> api admin`) and is not in CI yet (backlog B-26). Besides the two clients Olivia
   administers, `e2e/flow/tenants.ts` lists `people` (Paula, Mia), each seeded with a site of their own, for
   tests that count a list or change a person's sites: a test that changes someone's site list gets a person
-  of its own. `visual` is macOS screenshots.
+  of its own. Sam (`stylist`) renames her site on the Appearance screen, so no other test uses her. `visual` is macOS screenshots.
 
 ## Commands
 

@@ -45,5 +45,14 @@ export const finisher = {
   tenant: { organization: 'Finish Line Ltd', site: 'Finish Studio', host: 'finish.test' },
 }
 
+/**
+ * A fifth person, who changes their site's name and look on the Appearance screen (GOV-04): that
+ * renames the site, which other tests find by name, so no other test uses her.
+ */
+export const stylist = {
+  admin: { email: 'sam@style.test', name: 'Sam Stylist', password: 'style-flow-password' },
+  tenant: { organization: 'Style House Ltd', site: 'Style House', host: 'style.test' },
+}
+
 /** Everyone with a site of their own, each made by the real seed command. */
-export const people = [solo, maker, finisher]
+export const people = [solo, maker, finisher, stylist]
