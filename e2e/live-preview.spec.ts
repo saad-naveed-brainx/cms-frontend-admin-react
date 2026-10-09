@@ -56,6 +56,8 @@ test('[UC-LP-03] the preview uses the site’s theme, and shows a desktop or a p
   // Orchard's stored paper colour, #fffaf0, laid over the default theme.
   const themeRoot = preview(page).locator('div[style*="--site-paper"]').first()
   await expect(themeRoot).toHaveCSS('background-color', 'rgb(255, 250, 240)')
+  // The site's background fills the whole preview, not only behind the blocks.
+  expect(await themeRoot.evaluate((element) => getComputedStyle(element).minHeight)).not.toBe('0px')
 
   const frame = page.locator('iframe[title="Live preview of this page"]')
   await expect(page.getByRole('button', { name: 'Desktop' })).toHaveAttribute('aria-pressed', 'true')
