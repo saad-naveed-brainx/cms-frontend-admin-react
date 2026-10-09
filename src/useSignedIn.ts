@@ -15,6 +15,7 @@ export function useSignedIn() {
     return {
       userId: null,
       siteHost: null,
+      siteTheme: {} as unknown,
       canCreate: false,
       canPublish: false,
       mayEdit: (_createdBy: string | null) => false,
@@ -27,6 +28,8 @@ export function useSignedIn() {
     userId: state.user.id,
     /** The current site's main web address, for links to the website; null when it has none. */
     siteHost: membership?.site.primaryHost ?? null,
+    /** The current site's stored theme, for the live preview; the preview lays it over the default. */
+    siteTheme: (membership?.site.theme ?? {}) as unknown,
     canCreate: permissions.includes(CONTENT_CREATE),
     canPublish: permissions.includes(CONTENT_PUBLISH),
     /** Any page with `content.edit_any`; only the person's own pages with `content.edit_own`. */

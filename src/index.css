@@ -693,12 +693,70 @@ summary {
   columns: 2 12rem;
 }
 
-/* The edit screen: the page on the left, the Publish box on the right */
+/* The edit screen: the forms on the left; the Publish box and the live preview on the right */
 .edit-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   align-items: start;
   gap: 20px;
+}
+
+.edit-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  align-self: stretch;
+}
+
+/* What visitors will see: stays in view while the forms scroll, filling the height left below the bar. */
+.live-preview {
+  position: sticky;
+  top: calc(var(--bar-height) + 12px);
+}
+
+.live-preview-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.live-preview-bar h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.live-preview-views {
+  display: flex;
+  gap: 4px;
+}
+
+.live-preview-views button[aria-pressed='true'] {
+  color: var(--wp-on-blue);
+  background: var(--wp-blue);
+}
+
+.live-preview-note {
+  padding: 8px 12px 0;
+}
+
+.live-preview-box {
+  position: relative;
+  height: calc(100vh - var(--bar-height) - 120px);
+  min-height: 320px;
+  overflow: hidden;
+  background: var(--wp-stripe);
+}
+
+/* Drawn at the view's own width, then shrunk from its top-left corner to fit the box. */
+.live-preview-frame {
+  display: block;
+  margin: 0 auto;
+  border: 0;
+  background: var(--wp-box);
+  transform-origin: top left;
 }
 
 .edit-main {
@@ -863,6 +921,14 @@ fieldset.group legend {
 @media (max-width: 850px) {
   .edit-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .live-preview {
+    position: static;
+  }
+
+  .live-preview-box {
+    height: 70vh;
   }
 }
 

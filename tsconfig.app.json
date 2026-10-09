@@ -20,7 +20,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* The copied website blocks import with web's `@/` paths (src/site-blocks, D-030) */
+    "paths": { "@/*": ["./src/site-blocks/*"] }
   },
   "include": ["src"]
 }

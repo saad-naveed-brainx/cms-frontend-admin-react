@@ -12,10 +12,11 @@ report() {
   status=1
 }
 
-hex=$(grep -rnE '#[0-9a-fA-F]{3,8}\b' src --exclude=index.css)
+# src/site-blocks is the website's own code, copied (D-030); the website's tokens check covers it.
+hex=$(grep -rnE '#[0-9a-fA-F]{3,8}\b' src --exclude=index.css --exclude-dir=site-blocks)
 [ -n "$hex" ] && report "hex colour outside src/index.css (use a CSS variable)" "$hex"
 
-px=$(grep -rnE '[^a-zA-Z0-9_-][0-9.]+px\b|-\[-?[0-9.]+px\]' src --include='*.tsx' --include='*.ts')
+px=$(grep -rnE '[^a-zA-Z0-9_-][0-9.]+px\b|-\[-?[0-9.]+px\]' src --include='*.tsx' --include='*.ts' --exclude-dir=site-blocks)
 [ -n "$px" ] && report "raw pixel value in a component (use a token or rem in the stylesheet)" "$px"
 
 [ "$status" -eq 0 ] && echo "✔ tokens: no one-off colours or pixel values"

@@ -1,0 +1,37 @@
+/*
+ * The live preview's stylesheet (D-030). It is put inside the preview's frame only, never on the
+ * admin's own screens: Tailwind's reset would restyle them. It builds exactly the classes the copied
+ * website blocks use, the faces a theme can pick (self-hosted, as the website's next/font does), and
+ * the block styling that lives beside the theme (textures, rich text).
+ */
+@import "tailwindcss" source(none);
+@source "../site-blocks";
+
+@import "@fontsource-variable/fraunces/full.css";
+@import "@fontsource-variable/karla";
+@import "@fontsource-variable/archivo-narrow";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@import "../site-blocks/theme/site.css";
+
+/* The names the theme refers to, as web/src/app/layout.tsx gives them. */
+:root {
+  --font-fraunces: "Fraunces Variable", Georgia, serif;
+  --font-karla: "Karla Variable", system-ui, sans-serif;
+  --font-archivo-narrow: "Archivo Narrow Variable", system-ui, sans-serif;
+  --font-plex-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-plex-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+body {
+  margin: 0;
+}
+
+/* The entrance motion would replay on every keystroke; the preview shows the settled page. */
+.site-rise {
+  animation: none !important;
+}
