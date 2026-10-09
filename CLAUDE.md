@@ -46,6 +46,12 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   and Add New; one "Content" entry if the types cannot load) and Sites. `/pages` with no type is "All content". The
   menu folds to icons at 960 pixels and hides behind a Menu button at 782, as WordPress's does. Light only: the
   colours are WordPress's admin palette, as tokens in `src/index.css`. Icons are `lucide-react`, pinned to an exact version.
+- **Links to the website** (`src/site-links.ts`, `../docs/DECISIONS.md` D-028): sign-in gives each site its main address
+  (`site.primaryHost`), and `siteUrl(host, path)` turns it into a link with `VITE_SITE_SCHEME` (`http` or `https`, default
+  `https`) and `VITE_SITE_PORT` (default none), so locally `http://cafe.localhost:3000/` and in production
+  `https://cafe.example.com/`. `/home` links to `/`. Visit Site (bar), Visit site (Dashboard), View (published rows only),
+  View page (published edit screen) and Visit (Sites screen) open in a new tab. Every browser test runs the admin with
+  `http` and port 3000 (`siteLinkEnv` in `e2e/flow/env.ts`), so expected links are exact.
 - **New site** (`/sites/new`, `NewSite.tsx`, `sites-api.ts`) is about the person, not one site, so it is
   routed even when they belong to none. The organisation is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new

@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { adminPort, flowApiPort, flowApiUrl, flowDatabase } from './e2e/flow/env.ts'
+import { adminPort, flowApiPort, flowApiUrl, flowDatabase, siteLinkEnv } from './e2e/flow/env.ts'
 import { admin, people, tenants } from './e2e/flow/tenants.ts'
 
 /**
@@ -50,7 +50,7 @@ export default defineConfig({
       url: baseURL,
       // The admin always points at the flow API's address; tests that do not use the real API
       // answer its calls themselves.
-      env: { PORT: String(adminPort), VITE_API_URL: flowApiUrl },
+      env: { PORT: String(adminPort), VITE_API_URL: flowApiUrl, ...siteLinkEnv },
       reuseExistingServer: false,
       timeout: 60_000,
     },

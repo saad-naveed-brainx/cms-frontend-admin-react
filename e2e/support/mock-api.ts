@@ -18,13 +18,21 @@ export const person = {
 }
 
 export const orchard = {
-  site: { id: '0198f2a0-0000-7000-8000-000000000001', name: 'Orchard Bakery' },
+  site: {
+    id: '0198f2a0-0000-7000-8000-000000000001',
+    name: 'Orchard Bakery',
+    primaryHost: 'orchard.test' as string | null,
+  },
   role: { id: '0198f2a0-0000-7000-8000-0000000000a1', name: 'Administrator' },
   permissions: ['content.read', 'content.write', 'members.manage'],
 }
 
 export const maple = {
-  site: { id: '0198f2a0-0000-7000-8000-000000000002', name: 'Maple Books' },
+  site: {
+    id: '0198f2a0-0000-7000-8000-000000000002',
+    name: 'Maple Books',
+    primaryHost: 'maple.test' as string | null,
+  },
   role: { id: '0198f2a0-0000-7000-8000-0000000000a2', name: 'Editor' },
   permissions: ['content.read', 'content.write'],
 }
@@ -306,6 +314,7 @@ export async function fakeSites(
         const site = {
           id: `0198f2a0-0000-7000-8000-${String(900 + session.memberships.length).padStart(12, '0')}`,
           name: body.name,
+          primaryHost: body.hostnames[0] ?? null,
         }
         const membership = {
           site,
