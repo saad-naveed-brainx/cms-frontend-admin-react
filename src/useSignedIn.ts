@@ -5,6 +5,7 @@ import { useSession } from './session.ts'
 const CONTENT_CREATE = 'content.create'
 const CONTENT_EDIT_ANY = 'content.edit_any'
 const CONTENT_EDIT_OWN = 'content.edit_own'
+const CONTENT_PUBLISH = 'content.publish'
 
 /** Who is signed in and what their role on the current site lets the screens offer. */
 export function useSignedIn() {
@@ -14,6 +15,7 @@ export function useSignedIn() {
     return {
       userId: null,
       canCreate: false,
+      canPublish: false,
       mayEdit: (_createdBy: string | null) => false,
     }
   }
@@ -23,6 +25,7 @@ export function useSignedIn() {
   return {
     userId: state.user.id,
     canCreate: permissions.includes(CONTENT_CREATE),
+    canPublish: permissions.includes(CONTENT_PUBLISH),
     /** Any page with `content.edit_any`; only the person's own pages with `content.edit_own`. */
     mayEdit: (createdBy: string | null) =>
       permissions.includes(CONTENT_EDIT_ANY) ||

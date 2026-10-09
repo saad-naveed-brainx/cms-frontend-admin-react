@@ -211,3 +211,32 @@ test('[UC-CS-06] pages belong to one site: another site does not list them or op
   await page.getByRole('link', { name: 'Back to pages' }).click()
   await expect(page.getByText('No pages yet.')).toBeVisible()
 })
+
+test('[UC-RS-06] publishes and unpublishes a page through the screen, and the real API agrees', async ({
+  page,
+  request,
+}) => {
+  const api = await realApi(request, admin, ORCHARD)
+  const token = unique()
+  const made = await api.createPage({
+    type: 'page',
+    title: `Launch ${token}`,
+    slug: `launch-${token}`,
+  })
+  await signInThroughTheScreen(page)
+  await openSite(page, api.siteId)
+
+  await page.goto(`/pages/${made.id}`)
+  const facts = page.locator('dl.facts')
+  await expect(facts).toContainText('Draft')
+
+  await page.getByRole('button', { name: 'Publish', exact: true }).click()
+  await expect(page.getByText('Published.', { exact: true })).toBeVisible()
+  await expect(facts).toContainText('Published')
+  expect((await api.getPage(made.id)).body).toMatchObject({ status: 'published' })
+
+  await page.getByRole('button', { name: 'Unpublish', exact: true }).click()
+  await expect(page.getByText('Unpublished.', { exact: true })).toBeVisible()
+  await expect(facts).toContainText('Draft')
+  expect((await api.getPage(made.id)).body).toMatchObject({ status: 'draft', publishedAt: null })
+})

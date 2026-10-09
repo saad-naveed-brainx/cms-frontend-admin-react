@@ -132,3 +132,17 @@ export async function savePage(id: string, body: { title: string }): Promise<Pag
   if (!isPage(answer)) throw unusable()
   return answer
 }
+
+/** Makes the page live. The API answers with the page as it is now. */
+export async function publishPage(id: string): Promise<Page> {
+  const answer = await authed(`/content/${encodeURIComponent(id)}/publish`, { method: 'POST' })
+  if (!isPage(answer)) throw unusable()
+  return answer
+}
+
+/** Takes the page back to a draft. */
+export async function unpublishPage(id: string): Promise<Page> {
+  const answer = await authed(`/content/${encodeURIComponent(id)}/unpublish`, { method: 'POST' })
+  if (!isPage(answer)) throw unusable()
+  return answer
+}

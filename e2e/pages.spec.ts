@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Request } from '@playwright/test'
+import type { Request, Route } from '@playwright/test'
 import { fakeContent, fakePage, fulfill, person, signedInAs } from './support/mock-api.ts'
 
 /**
@@ -230,4 +230,55 @@ test('[UC-CS-12] the slug follows the title until it is edited by hand, and the 
   await expect(page.getByText('Address: /blog/custom')).toBeVisible()
   await page.getByLabel('Type').selectOption('page')
   await expect(page.getByText('Address: /custom')).toBeVisible()
+})
+
+for (const [who, permissions, offered] of [
+  ['a viewer', [], false],
+  ['an author', ['content.create', 'content.edit_own'], false],
+  ['an editor without publish', ['content.edit_any'], false],
+  ['a publisher', ['content.edit_any', 'content.publish'], true],
+] as const) {
+  test(`[UC-RS-07] ${who} ${offered ? 'is offered' : 'is not offered'} Publish`, async ({ page }) => {
+    const draft = fakePage(1, { title: 'Draft page' })
+    await fakeContent(page, [draft])
+    await signedInAs(page, [...permissions])
+    await page.goto(`/pages/${draft.id}`)
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Draft page' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Publish', exact: true })).toHaveCount(
+      offered ? 1 : 0,
+    )
+    await expect(page.getByRole('button', { name: 'Unpublish', exact: true })).toHaveCount(0)
+  })
+}
+
+test('[UC-RS-07] a refused or impossible publish is shown plainly and changes nothing', async ({
+  page,
+}) => {
+  const draft = fakePage(1, { title: 'Draft page' })
+  const live = fakePage(2, { title: 'Live page', status: 'published' })
+  const api = await fakeContent(page, [draft, live])
+  await signedInAs(page, [...EVERYTHING, 'content.publish'])
+  const answer = (status: number) => (route: Route, request: Request) => {
+    if (request.method() !== 'POST') return false
+    void fulfill(route, status, { message: 'no' })
+    return true
+  }
+
+  await page.goto(`/pages/${draft.id}`)
+  api.override = answer(403)
+  await page.getByRole('button', { name: 'Publish', exact: true }).click()
+  await expect(page.getByRole('alert')).toHaveText("You don't have permission to do that.")
+  await expect(page.locator('dl.facts')).toContainText('Draft')
+
+  await page.goto(`/pages/${live.id}`)
+  api.override = answer(409)
+  await page.getByRole('button', { name: 'Unpublish', exact: true }).click()
+  await expect(page.getByRole('alert')).toHaveText('This page is not published.')
+
+  // And when it works, the status and the message follow.
+  api.override = null
+  await page.getByRole('button', { name: 'Unpublish', exact: true }).click()
+  await expect(page.getByText('Unpublished.', { exact: true })).toBeVisible()
+  await expect(page.locator('dl.facts')).toContainText('Draft')
 })

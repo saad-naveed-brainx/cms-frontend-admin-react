@@ -7,7 +7,7 @@ import { fakeContent, fakePage, postType, signedInAs } from '../support/mock-api
  * flow is tested in e2e/flow/.
  */
 
-const EVERYTHING = ['content.create', 'content.edit_any', 'content.edit_own']
+const EVERYTHING = ['content.create', 'content.edit_any', 'content.edit_own', 'content.publish']
 const post = { id: postType.id, slug: postType.slug, name: postType.name }
 
 const pages = [
