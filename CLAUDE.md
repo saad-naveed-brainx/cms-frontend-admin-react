@@ -39,7 +39,8 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   (person, sites, role, permissions) is asked of `GET /auth/me` on every load. Calls go through `authed()`,
   so the token and `X-Site-Id` travel with them and a 401 ends the session; `src/api.ts` is the only
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
-  inside the frame `react-router` does the rest (`BrowserRouter` in `main.tsx`, the routes in `Shell.tsx`:
+  inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
+  route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
   `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/sites` and `/sites/new`). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
 - **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
@@ -77,6 +78,13 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `http://` address); an emptied box is sent as `null`, and only changed fields are sent, with the title and blocks. Its
   boxes' ids are their field names (`seoTitle`), so a problem focuses the box. Tests find the page's Title box with
   `getByLabel('Title', { exact: true })`: a loose match also finds "SEO title".
+- **Save is in a bar along the bottom of the edit screen** (`.save-bar`, sticky, D-034), not in the Publish box: one Save
+  button, with "You have unsaved changes." or "No unsaved changes." and any save error. While anything is unsaved the
+  Publish box says "Save your changes first. Preview and Publish use the saved page." **Leaving with unsaved changes asks
+  first** (`src/leave-guard.ts`): links and Back through `useBlocker`, the site switcher and Sign out through
+  `confirmLeaving()` before they act, a reload or closing the tab through `beforeunload`. A new control that leaves the
+  edit screen without a navigation must call `confirmLeaving()` too. Playwright dismisses a dialog it is not told to
+  answer, so a test that leaves with unsaved changes must answer it (`e2e/flow/save-bar.spec.ts`).
 - **No Prettier config in this repo.** `npx prettier --write` with its defaults rewrites every file
   (double quotes, semicolons). If you format, pass `--no-semi --single-quote --print-width 100` and
   check `git diff --stat` for files you did not mean to touch.
