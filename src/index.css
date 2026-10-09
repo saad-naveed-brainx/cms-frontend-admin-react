@@ -360,3 +360,14 @@ dl.facts dd {
   padding: 0.2rem 0.65rem;
   font-size: 0.875rem;
 }
+
+/* The New site form: an address and, for the extra ones, a button to remove it */
+.address-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.address-row input {
+  flex: 1;
+  min-width: 0;
+}

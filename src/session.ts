@@ -191,6 +191,29 @@ export function signOut(): void {
   endSession(null)
 }
 
+/**
+ * Asks the API again who the person is and which sites they belong to, without leaving the
+ * signed-in frame. Used after they gain a site, so the switcher knows it; `selectSiteId` moves them
+ * onto it in the same update. Failures are the caller's to explain.
+ */
+export async function reloadProfile(selectSiteId?: string): Promise<void> {
+  if (state.status !== 'signed-in') return
+  const mine = generation
+  const profile = await authed('/auth/me')
+  // The person signed out, or the session was checked again, while this was asking.
+  if (mine !== generation || state.status !== 'signed-in') return
+  if (!isProfile(profile)) throw new ApiError(502)
+
+  const chosen = profile.memberships.find((membership) => membership.site.id === selectSiteId)
+  if (chosen) storageSet(SITE_KEY, chosen.site.id)
+  setState({
+    status: 'signed-in',
+    user: profile.user,
+    memberships: profile.memberships,
+    siteId: pickSite(profile.memberships),
+  })
+}
+
 export function selectSite(siteId: string): void {
   if (state.status !== 'signed-in') return
   if (!state.memberships.some((membership) => membership.site.id === siteId)) return

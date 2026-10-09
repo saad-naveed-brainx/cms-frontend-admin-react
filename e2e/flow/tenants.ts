@@ -26,3 +26,15 @@ export const solo = {
   admin: { email: 'paula@birch.test', name: 'Paula Birch', password: 'birch-flow-password' },
   tenant: { organization: 'Birch Studio Ltd', site: 'Birch Studio', host: 'birch.test' },
 }
+
+/**
+ * A third person who owns one organisation with one site, and is the only one who creates sites
+ * through the screen: that changes her list of sites, which other tests count.
+ */
+export const maker = {
+  admin: { email: 'mia@maker.test', name: 'Mia Maker', password: 'maker-flow-password' },
+  tenant: { organization: 'Maker Collective', site: 'Maker Studio', host: 'maker.test' },
+}
+
+/** Everyone with a site of their own, each made by the real seed command. */
+export const people = [solo, maker]

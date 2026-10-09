@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { STATUS_CHOICES, formatDate, statusLabel } from './helpers.ts'
 import { fetchPages, fetchTypes } from './pages-api.ts'
 import type { PageList, PageType } from './pages-api.ts'
@@ -15,7 +15,12 @@ type Answer = { key: string; list: PageList | null }
 /** The site's pages, last changed first. The filters and the page number live in the address, so a reload or a shared link shows the same list. */
 export default function PagesList() {
   const { canCreate } = useSignedIn()
+  const location = useLocation()
   const [params, setParams] = useSearchParams()
+  // Creating a site lands here, on the new site's own list.
+  const [notice] = useState<string | null>(
+    (location.state as { siteCreated?: boolean } | null)?.siteCreated ? 'Site created.' : null,
+  )
   const type = params.get('type') ?? ''
   const status = params.get('status') ?? ''
   const offset = Math.max(0, Math.floor(Number(params.get('offset'))) || 0)
@@ -79,6 +84,12 @@ export default function PagesList() {
           </Link>
         )}
       </div>
+
+      {notice && (
+        <p role="status" className="notice">
+          {notice}
+        </p>
+      )}
 
       <div className="filters">
         <div className="field">

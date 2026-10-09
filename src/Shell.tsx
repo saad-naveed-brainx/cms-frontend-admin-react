@@ -1,7 +1,8 @@
-import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router'
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router'
 import type { Membership, User } from './api.ts'
 import EditPage from './EditPage.tsx'
 import NewPage from './NewPage.tsx'
+import NewSite from './NewSite.tsx'
 import NotFound from './NotFound.tsx'
 import Overview from './Overview.tsx'
 import PagesList from './PagesList.tsx'
@@ -48,27 +49,38 @@ export default function Shell({ user, memberships, siteId }: Props) {
           ) : (
             current && <span className="site-name">{current.site.name}</span>
           )}
+          <Link className="button secondary" to="/sites/new">
+            New site
+          </Link>
           <span className="user">{user.name}</span>
           <button type="button" className="secondary" onClick={() => signOut()}>
             Sign out
           </button>
         </div>
       </header>
-      {current ? (
-        // Keyed by site, so changing site loads that site's pages from scratch.
-        <Routes>
-          <Route path="/" element={<Overview user={user} membership={current} />} />
-          <Route path="/pages" element={<PagesList key={current.site.id} />} />
-          <Route path="/pages/new" element={<NewPage key={current.site.id} />} />
-          <Route path="/pages/:id" element={<EditPage key={current.site.id} />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      ) : (
-        <main>
-          <h1>No sites yet</h1>
-          <p>Your account is not a member of any site. Ask an administrator to add you.</p>
-        </main>
-      )}
+      <Routes>
+        {/* About the person, not one site, so a person with no sites can reach it. */}
+        <Route path="/sites/new" element={<NewSite />} />
+        {current && (
+          <>
+            {/* Keyed by site, so changing site loads that site's pages from scratch. */}
+            <Route path="/" element={<Overview user={user} membership={current} />} />
+            <Route path="/pages" element={<PagesList key={current.site.id} />} />
+            <Route path="/pages/new" element={<NewPage key={current.site.id} />} />
+            <Route path="/pages/:id" element={<EditPage key={current.site.id} />} />
+          </>
+        )}
+        <Route path="*" element={current ? <NotFound /> : <NoSites />} />
+      </Routes>
     </>
+  )
+}
+
+function NoSites() {
+  return (
+    <main>
+      <h1>No sites yet</h1>
+      <p>Your account is not a member of any site. Ask an administrator to add you.</p>
+    </main>
   )
 }
