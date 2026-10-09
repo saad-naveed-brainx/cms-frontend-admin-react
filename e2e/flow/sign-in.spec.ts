@@ -44,7 +44,7 @@ test('[UC-AS-01] signing in with a seeded account shows the person, the site, th
   await signInThroughTheScreen(page)
   const real = await realLogin(request)
 
-  const heading = page.getByRole('heading', { level: 1 })
+  const heading = page.locator('.welcome-panel h2')
   await expect(heading).toHaveText(new RegExp(`^(${siteNames.join('|')})$`))
   const shownSite = (await heading.textContent()) ?? ''
   const membership = real.memberships.find((m) => m.site.name === shownSite)
@@ -63,14 +63,14 @@ test('[UC-AS-01] signing in with a seeded account shows the person, the site, th
 
 test('[UC-AS-02] a reload keeps the session and asks the API who it belongs to', async ({ page }) => {
   await signInThroughTheScreen(page)
-  const siteBefore = (await page.getByRole('heading', { level: 1 }).textContent()) ?? ''
+  const siteBefore = (await page.locator('.welcome-panel h2').textContent()) ?? ''
   const saved = JSON.parse((await stored(page, SESSION_KEY)) ?? 'null') as { accessToken: string }
 
   const [whoAmI] = await Promise.all([whoAmIRequest(page), page.reload()])
 
   expect(whoAmI.headers().authorization).toBe(`Bearer ${saved.accessToken}`)
   await expect(page.getByRole('banner')).toContainText(admin.name)
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(siteBefore)
+  await expect(page.locator('.welcome-panel h2')).toHaveText(siteBefore)
 })
 
 test('[UC-AS-03] signing out returns to the sign-in screen, and a reload stays there', async ({
@@ -105,7 +105,7 @@ test('[UC-AS-04] with two sites the switcher lists both, switches, remembers the
     await expect(switcher.locator('option', { hasText: `${site} · ${adminRole}` })).toHaveCount(1)
   }
 
-  const heading = page.getByRole('heading', { level: 1 })
+  const heading = page.locator('.welcome-panel h2')
   const shown = (await heading.textContent()) ?? ''
   const other = real.memberships.find((m) => m.site.name !== shown)
   expect(other).toBeDefined()

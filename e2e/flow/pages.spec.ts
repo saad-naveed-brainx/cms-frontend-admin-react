@@ -89,8 +89,9 @@ test('[UC-CS-03] lists the real pages of a site, last changed first, with paging
   }
 
   await signInThroughTheScreen(page, solo.admin)
-  await pagesLink(page).click()
-  const items = page.locator('ul.pages li')
+  // Every type at once: the menu's Pages and Posts each list one type.
+  await page.goto('/pages')
+  const items = page.locator('.list-table tbody tr')
 
   await expect(page.getByText('Showing 1–25 of 27')).toBeVisible()
   await expect(items).toHaveCount(25)

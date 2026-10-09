@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   SESSION_KEY,
+  fakeContent,
   fulfill,
   inDays,
   profileBody,
@@ -35,11 +36,12 @@ for (const width of [375, 768, 1280]) {
     })
 
     test('[UC-AS-13] the signed-in frame looks as approved', async ({ page }) => {
+      await fakeContent(page, [])
       await page.route('**/auth/me', (route) => fulfill(route, 200, profileBody()))
       await seedStorage(page, {
         [SESSION_KEY]: JSON.stringify({ accessToken: 'saved-token', expiresAt: inDays(1) }),
       })
-      await expect(page.getByRole('heading', { level: 1, name: 'Orchard Bakery' })).toBeVisible()
+      await expect(page.getByRole('heading', { level: 2, name: 'Orchard Bakery' })).toBeVisible()
       await page.getByText('What this role allows').click()
       await expect(page).toHaveScreenshot(`signed-in-${width}.png`, { fullPage: true })
     })

@@ -43,7 +43,7 @@ test('[UC-RS-12] creates a site through the screen: it is selected, empty, liste
   await expect(switcher.locator('option', { hasText: `${siteName} · Administrator` })).toHaveCount(
     1,
   )
-  await expect(page.getByRole('link', { name: 'New page', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Add New Page', exact: true })).toBeVisible()
 
   // Its address answers at once, tidied by the API (lower-case, no scheme).
   const resolved = await request.get(`${flowApiUrl}/sites/resolve?host=${host}`)

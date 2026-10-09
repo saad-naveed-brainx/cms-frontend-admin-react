@@ -1,34 +1,50 @@
+/*
+ * The admin's look, modelled on WordPress's admin: a dark bar on top, a dark menu on the left, a
+ * light grey work area, white boxes with a thin border, and WordPress's blue for actions. Light only,
+ * as WordPress's admin is. This file is the tokens file: the only place a hex colour may appear.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #6b7280;
-  --surface: #f9fafb;
-  --border: #d1d5db;
-  --accent: #2563eb;
-  --accent-foreground: #ffffff;
-  --danger: #b91c1c;
+  --wp-bar: #1d2327;
+  --wp-bar-hover: #2c3338;
+  --wp-menu-text: #f0f0f1;
+  --wp-menu-icon: #a7aaad;
+  --wp-menu-hover: #72aee6;
+  --wp-submenu-text: #c3c4c7;
+  --wp-page: #f0f0f1;
+  --wp-box: #ffffff;
+  --wp-stripe: #f6f7f7;
+  --wp-heading: #1d2327;
+  --wp-text: #3c434a;
+  --wp-muted: #646970;
+  --wp-faint: #a7aaad;
+  --wp-border: #c3c4c7;
+  --wp-border-light: #dcdcde;
+  --wp-input-border: #8c8f94;
+  --wp-blue: #2271b1;
+  --wp-blue-dark: #135e96;
+  --wp-on-blue: #ffffff;
+  --wp-red: #d63638;
+  --wp-green: #00a32a;
+  --wp-shadow: rgb(0 0 0 / 4%);
 
-  color-scheme: light dark;
+  --bar-height: 32px;
+  --menu-width: 160px;
+
+  color-scheme: light;
   font-family:
-    ui-sans-serif,
-    system-ui,
     -apple-system,
+    BlinkMacSystemFont,
     'Segoe UI',
+    Roboto,
+    Oxygen-Sans,
+    Ubuntu,
+    Cantarell,
+    'Helvetica Neue',
     sans-serif;
-  line-height: 1.6;
-  color: var(--foreground);
-  background-color: var(--background);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --muted: #9ca3af;
-    --surface: #141414;
-    --border: #3f3f46;
-    --danger: #f87171;
-  }
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--wp-text);
+  background-color: var(--wp-page);
 }
 
 * {
@@ -38,339 +54,690 @@
 body {
   margin: 0;
   min-height: 100vh;
+  background: var(--wp-page);
 }
 
 main {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 4rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 12px;
+  padding: 10px 0 40px;
 }
 
 h1 {
-  font-size: 1.875rem;
-  font-weight: 600;
   margin: 0;
+  font-size: 23px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--wp-heading);
+}
+
+h2 {
+  margin: 0;
+  color: var(--wp-heading);
 }
 
 p {
   margin: 0;
-  color: var(--muted);
 }
 
-.eyebrow {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+a {
+  color: var(--wp-blue);
+}
+
+a:hover {
+  color: var(--wp-blue-dark);
+}
+
+code {
+  font-family: Consolas, Monaco, ui-monospace, monospace;
+  font-size: 0.92em;
+  padding: 2px 4px;
+  background: rgb(0 0 0 / 7%);
+}
+
+.screen-reader-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
 }
 
 .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.875rem;
+  font-family: Consolas, Monaco, ui-monospace, monospace;
 }
 
-/* Sign-in and the other full-screen messages */
-main.auth {
-  max-width: 24rem;
-  padding-top: 5rem;
+:focus-visible {
+  outline: 2px solid var(--wp-blue);
+  outline-offset: 1px;
 }
 
+/* Forms. A screen's own form sits in a white box; the fields inside a block card do not. */
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
+}
+
+main > form.form {
+  max-width: 40rem;
+  padding: 20px;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  box-shadow: 0 1px 1px var(--wp-shadow);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 6px;
 }
 
 label {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wp-heading);
 }
 
 input,
 select,
 textarea {
   font: inherit;
-  color: inherit;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.75rem;
+  font-size: 14px;
+  color: var(--wp-text);
+  background: var(--wp-box);
+  border: 1px solid var(--wp-input-border);
+  border-radius: 4px;
+  min-height: 30px;
+  padding: 0 8px;
   max-width: 100%;
+}
+
+textarea {
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+select {
+  padding-right: 24px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--wp-blue);
+  box-shadow: 0 0 0 1px var(--wp-blue);
+  outline: 2px solid transparent;
 }
 
 input[aria-invalid='true'],
 textarea[aria-invalid='true'] {
-  border-color: var(--danger);
+  border-color: var(--wp-red);
 }
 
-textarea {
-  resize: vertical;
+input[readonly] {
+  background: var(--wp-stripe);
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
 }
 
-button {
+label.check input {
+  min-height: 0;
+}
+
+.field-error,
+.form-error {
+  color: var(--wp-red);
+  font-size: 13px;
+}
+
+.hint {
+  color: var(--wp-muted);
+  font-size: 13px;
+}
+
+/* Buttons, and links that look like buttons */
+button,
+a.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 12px;
   font: inherit;
-  font-weight: 500;
-  color: var(--accent-foreground);
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 0.5rem;
-  padding: 0.6rem 1rem;
+  font-size: 13px;
+  line-height: 2.15;
+  color: var(--wp-on-blue);
+  background: var(--wp-blue);
+  border: 1px solid var(--wp-blue);
+  border-radius: 3px;
+  text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: progress;
+button:hover,
+a.button:hover {
+  color: var(--wp-on-blue);
+  background: var(--wp-blue-dark);
+  border-color: var(--wp-blue-dark);
 }
 
-button.secondary {
-  color: var(--foreground);
-  background: transparent;
-  border-color: var(--border);
+button.secondary,
+a.button.secondary {
+  color: var(--wp-blue);
+  background: var(--wp-stripe);
+  border-color: var(--wp-blue);
+}
+
+button.secondary:hover,
+a.button.secondary:hover {
+  color: var(--wp-blue-dark);
+  background: var(--wp-page);
+  border-color: var(--wp-blue-dark);
+}
+
+button:disabled,
+button:disabled:hover {
+  color: var(--wp-faint);
+  background: var(--wp-stripe);
+  border-color: var(--wp-border-light);
+  cursor: default;
+}
+
+button.small {
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 2;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 8px;
 }
 
-.field-error,
-.form-error {
-  color: var(--danger);
-  font-size: 0.875rem;
-}
-
+/* Messages */
 .notice {
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--surface);
-}
-
-/* The signed-in frame */
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1rem;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.brand {
-  font-weight: 600;
-}
-
-.bar nav {
-  display: flex;
-  gap: 1rem;
-}
-
-.bar nav a {
-  color: var(--muted);
-  text-decoration: none;
-  border-bottom: 2px solid transparent;
-}
-
-.bar nav a[aria-current='page'] {
-  color: var(--foreground);
-  border-bottom-color: var(--accent);
-}
-
-.bar-end {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1rem;
-  margin-left: auto;
-}
-
-.switcher {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.user,
-.site-name {
-  color: var(--muted);
-}
-
-.bar + main {
-  padding-top: 2.5rem;
-}
-
-summary {
-  cursor: pointer;
-  color: var(--muted);
-}
-
-.permissions {
-  margin: 0.75rem 0 0;
-  padding-left: 1.25rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.875rem;
-  columns: 2 12rem;
-}
-
-/* Links, and links that look like buttons */
-a {
-  color: var(--accent);
-}
-
-a.button {
-  display: inline-block;
-  font-weight: 500;
-  color: var(--accent-foreground);
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 0.5rem;
-  padding: 0.6rem 1rem;
-  text-decoration: none;
-}
-
-a.button.secondary {
-  color: var(--foreground);
-  background: transparent;
-  border-color: var(--border);
-}
-
-.back {
-  color: var(--muted);
-  font-size: 0.875rem;
-  text-decoration: none;
-}
-
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.875em;
-}
-
-/* The page screens */
-main.wide {
-  max-width: 64rem;
-  padding-top: 2.5rem;
-}
-
-.heading-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.filters .field {
-  min-width: 10rem;
-}
-
-.count {
-  font-size: 0.875rem;
-}
-
-ul.pages {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-}
-
-ul.pages li {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.8rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-ul.pages li:last-child {
-  border-bottom: 0;
-}
-
-.page-title {
-  font-weight: 600;
-  color: var(--foreground);
-  text-decoration: none;
-}
-
-.page-title:hover {
-  color: var(--accent);
-  text-decoration: underline;
-}
-
-.meta {
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
-.pager {
-  display: flex;
-  gap: 0.75rem;
+  padding: 8px 12px;
+  background: var(--wp-box);
+  border-left: 4px solid var(--wp-green);
+  box-shadow: 0 1px 1px var(--wp-shadow);
 }
 
 .problem {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 12px;
+  padding: 16px;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
 }
 
-.hint {
-  font-size: 0.875rem;
+.problem [role='alert'] {
+  color: var(--wp-red);
 }
 
-input[readonly] {
-  opacity: 0.8;
+/* Sign-in and the other full-screen messages, like WordPress's login screen */
+main.auth {
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 8vh 0 40px;
+}
+
+.login-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--wp-heading);
+}
+
+.login-logo::before {
+  content: 'C';
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 52px;
+  font-weight: 400;
+  color: var(--wp-on-blue);
+  background: var(--wp-blue);
+}
+
+.login-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 26px 24px;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  box-shadow: 0 1px 3px var(--wp-shadow);
+}
+
+.login-box h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.login-box input {
+  min-height: 40px;
+  font-size: 20px;
+  padding: 3px 8px;
+}
+
+.login-box button[type='submit'] {
+  align-self: flex-end;
+  min-height: 32px;
+  padding: 0 14px;
+}
+
+/* The signed-in frame. The menu's dark column is painted on the frame too, so it reaches the bottom of a long page. */
+.wp {
+  min-height: 100vh;
+  background: linear-gradient(
+    to right,
+    var(--wp-bar) var(--menu-width),
+    var(--wp-page) var(--menu-width)
+  );
+}
+
+/* The bar on top */
+.adminbar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  display: flex;
+  align-items: stretch;
+  height: var(--bar-height);
+  color: var(--wp-menu-text);
+  background: var(--wp-bar);
+}
+
+.adminbar-item,
+.adminbar-item:hover {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+  height: 100%;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: var(--bar-height);
+  color: var(--wp-menu-text);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  text-decoration: none;
+}
+
+a.adminbar-item:hover,
+button.adminbar-item:hover {
+  color: var(--wp-menu-hover);
+  background: var(--wp-bar-hover);
+}
+
+.adminbar-item svg {
+  color: var(--wp-menu-icon);
+  flex: none;
+}
+
+.adminbar-item:hover svg {
+  color: var(--wp-menu-hover);
+}
+
+.site-name {
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher select {
+  min-height: 24px;
+  max-width: 22rem;
+  padding: 0 24px 0 6px;
+  font-size: 13px;
+  color: var(--wp-menu-text);
+  background: var(--wp-bar-hover);
+  border: 1px solid var(--wp-muted);
+  border-radius: 3px;
+}
+
+.adminbar-end {
+  display: flex;
+  margin-left: auto;
+}
+
+.menu-toggle {
+  display: none;
+}
+
+/* The signed-in frame: the menu on the left */
+.adminmenu {
+  position: fixed;
+  top: var(--bar-height);
+  bottom: 0;
+  left: 0;
+  z-index: 90;
+  width: var(--menu-width);
+  padding-top: 12px;
+  overflow-y: auto;
+  background: var(--wp-bar);
+}
+
+.adminmenu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 8px 0 10px;
+  font-size: 14px;
+  color: var(--wp-menu-text);
+  text-decoration: none;
+}
+
+.menu-top svg {
+  flex: none;
+  color: var(--wp-menu-icon);
+}
+
+.adminmenu li:hover > .menu-top,
+.menu-top:focus-visible {
+  color: var(--wp-menu-hover);
+  background: var(--wp-bar-hover);
+}
+
+.adminmenu li:hover > .menu-top svg {
+  color: var(--wp-menu-hover);
+}
+
+.adminmenu li.current > .menu-top,
+.adminmenu li.current:hover > .menu-top {
+  font-weight: 400;
+  color: var(--wp-on-blue);
+  background: var(--wp-blue);
+}
+
+.adminmenu li.current > .menu-top svg {
+  color: var(--wp-on-blue);
+}
+
+/* The little notch WordPress draws beside the current menu item, pointing at the work area. */
+.adminmenu li.current > .menu-top::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  margin-top: -8px;
+  border: 8px solid transparent;
+  border-right-color: var(--wp-page);
+}
+
+.submenu {
+  padding: 7px 0 8px;
+  background: var(--wp-bar-hover);
+}
+
+.submenu a {
+  display: block;
+  padding: 5px 12px 5px 38px;
+  font-size: 13px;
+  color: var(--wp-submenu-text);
+  text-decoration: none;
+}
+
+.submenu a:hover,
+.submenu a:focus-visible {
+  color: var(--wp-menu-hover);
+}
+
+.submenu a[aria-current='page'] {
+  font-weight: 600;
+  color: var(--wp-on-blue);
+}
+
+/* The work area beside the menu */
+.wp-content {
+  margin-left: var(--menu-width);
+  padding: calc(var(--bar-height) + 10px) 20px 0;
+}
+
+.heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.back {
+  align-self: flex-start;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+/* Tables, as WordPress draws its post lists */
+.tablenav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tablenav-pages {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--wp-muted);
+}
+
+.pager {
+  display: flex;
+  gap: 4px;
+}
+
+.pager button {
+  min-width: 30px;
+  font-size: 16px;
+}
+
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  box-shadow: 0 1px 1px var(--wp-shadow);
+}
+
+.list-table th {
+  padding: 8px 10px;
+  font-size: 14px;
+  font-weight: 400;
+  text-align: left;
+  color: var(--wp-heading);
+  border-bottom: 1px solid var(--wp-border);
+}
+
+.list-table td {
+  padding: 8px 10px;
+  vertical-align: top;
+  color: var(--wp-text);
+}
+
+.list-table tbody tr:nth-child(odd) {
+  background: var(--wp-stripe);
+}
+
+.row-title {
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.post-state {
+  font-weight: 600;
+  color: var(--wp-text);
+}
+
+/* Shown on hover or keyboard focus, as in WordPress; moved off screen rather than hidden, so screen readers keep them. */
+.row-actions {
+  position: relative;
+  left: -9999em;
+  padding-top: 4px;
+  font-size: 13px;
+}
+
+.list-table tr:hover .row-actions,
+.list-table tr:focus-within .row-actions {
+  left: 0;
+}
+
+.action-col {
+  text-align: right;
+}
+
+/* Boxes: the Dashboard's welcome panel and WordPress's "postbox" */
+.welcome-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  box-shadow: 0 1px 1px var(--wp-shadow);
+}
+
+.welcome-panel h2 {
+  font-size: 21px;
+  font-weight: 400;
+}
+
+.welcome-panel p {
+  font-size: 14px;
+}
+
+.postbox {
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  box-shadow: 0 1px 1px var(--wp-shadow);
+}
+
+.postbox-title {
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--wp-border);
+}
+
+.postbox-inside {
+  padding: 12px;
+}
+
+.postbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--wp-stripe);
+  border-top: 1px solid var(--wp-border-light);
+}
+
+.postbox-actions .form-error {
+  flex-basis: 100%;
+}
+
+summary {
+  cursor: pointer;
+  color: var(--wp-blue);
+}
+
+.permissions {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  font-family: Consolas, Monaco, ui-monospace, monospace;
+  columns: 2 12rem;
+}
+
+/* The edit screen: the page on the left, the Publish box on the right */
+.edit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  align-items: start;
+  gap: 20px;
+}
+
+.edit-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.title-field input {
+  min-height: 40px;
+  font-size: 20px;
+  padding: 3px 10px;
 }
 
 dl.facts {
   display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.5rem 1.5rem;
-  margin: 0.5rem 0 0;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
 }
 
 dl.facts dt {
-  color: var(--muted);
+  color: var(--wp-muted);
 }
 
 dl.facts dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .inline-action {
-  margin-left: 0.75rem;
-  padding: 0.2rem 0.65rem;
-  font-size: 0.875rem;
+  margin-left: 8px;
 }
 
 /* The New site form: an address and, for the extra ones, a button to remove it */
 .address-row {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .address-row input {
@@ -382,27 +749,28 @@ dl.facts dd {
 .blocks {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 12px;
 }
 
 .blocks h2 {
-  margin: 0;
-  font-size: 1.25rem;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 ol.block-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .block-card {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  padding: 12px;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  box-shadow: 0 1px 1px var(--wp-shadow);
 }
 
 .block-bar {
@@ -410,63 +778,155 @@ ol.block-list {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 8px;
+  margin: -12px -12px 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--wp-border-light);
 }
 
 .block-bar h3 {
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wp-heading);
 }
 
 .block-actions,
 .block-add {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 6px;
 }
 
-button.small {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.875rem;
+.block-card > .field + .field,
+.block-card > fieldset,
+.block-card > .field + fieldset {
+  margin-top: 12px;
 }
 
 fieldset.group {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
   min-width: 0;
   margin: 0;
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  padding: 12px;
+  border: 1px solid var(--wp-border-light);
 }
 
 fieldset.group legend {
-  padding: 0 0.35rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wp-heading);
 }
 
 .list-entry {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px dashed var(--border);
-  border-radius: 0.5rem;
+  gap: 12px;
+  padding: 12px;
+  background: var(--wp-stripe);
+  border: 1px solid var(--wp-border-light);
 }
 
 .entry-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--muted);
-  font-size: 0.875rem;
+  font-size: 13px;
+  color: var(--wp-muted);
 }
 
-label.check {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+/* Narrower screens fold the menu to its icons, as WordPress does below 960 pixels. */
+@media (max-width: 960px) {
+  :root {
+    --menu-width: 36px;
+  }
+
+  .menu-top {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .menu-name,
+  .submenu {
+    display: none;
+  }
+}
+
+/* The edit screen stacks its Publish box under the page. */
+@media (max-width: 850px) {
+  .edit-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Phones: a taller bar, the menu behind a button, and the list's extra columns hidden. */
+@media (max-width: 782px) {
+  :root {
+    --bar-height: 46px;
+    --menu-width: 0px;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .adminbar-item,
+  .adminbar-item:hover {
+    padding: 0 8px;
+    font-size: 14px;
+  }
+
+  .site-name {
+    max-width: 9rem;
+  }
+
+  .switcher select {
+    max-width: 9rem;
+  }
+
+  .user {
+    display: none;
+  }
+
+  .adminmenu {
+    display: none;
+    width: 190px;
+  }
+
+  .menu-open .adminmenu {
+    display: block;
+  }
+
+  .menu-open .menu-top {
+    justify-content: flex-start;
+    padding: 0 8px 0 10px;
+  }
+
+  .menu-open .menu-name {
+    display: inline;
+  }
+
+  .menu-open .submenu {
+    display: block;
+  }
+
+  .wp-content {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .hide-narrow {
+    display: none;
+  }
+
+  .row-actions {
+    left: 0;
+  }
+
+  .action-col {
+    text-align: left;
+  }
 }

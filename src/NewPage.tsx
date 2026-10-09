@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { SLUG_SHAPE, addressFor, describeFailure, slugify } from './helpers.ts'
+import { Link, useNavigate, useSearchParams } from 'react-router'
+import { SLUG_SHAPE, addressFor, describeFailure, listPath, slugify } from './helpers.ts'
 import { createPage, fetchTypes } from './pages-api.ts'
 import type { PageType } from './pages-api.ts'
 import { useSignedIn } from './useSignedIn.ts'
@@ -13,6 +13,9 @@ type TypesAnswer = { attempt: number; types: PageType[] | null }
 export default function NewPage() {
   const { canCreate } = useSignedIn()
   const navigate = useNavigate()
+  // The menu's "Add New" under a content type opens this form with that type chosen.
+  const [params] = useSearchParams()
+  const askedSlug = params.get('type')
 
   const [typesAnswer, setTypesAnswer] = useState<TypesAnswer | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -46,9 +49,9 @@ export default function NewPage() {
 
   if (!canCreate) {
     return (
-      <main className="wide">
-        <Link className="back" to="/pages">
-          ← Pages
+      <main>
+        <Link className="back" to={listPath(askedSlug)}>
+          ← Back
         </Link>
         <h1>New page</h1>
         <p role="status">You don't have permission to create pages on this site.</p>
@@ -58,7 +61,7 @@ export default function NewPage() {
 
   if (types === null) {
     return (
-      <main className="wide">
+      <main>
         <h1>New page</h1>
         <div className="problem">
           <p role="alert">Couldn't load the content types.</p>
@@ -72,14 +75,18 @@ export default function NewPage() {
 
   if (types === undefined) {
     return (
-      <main className="wide">
+      <main>
         <h1>New page</h1>
         <p role="status">Loading…</p>
       </main>
     )
   }
 
-  const typeSlug = chosenSlug || types[0]?.slug || ''
+  const typeSlug =
+    chosenSlug ||
+    types.find((item) => item.slug === askedSlug)?.slug ||
+    types[0]?.slug ||
+    ''
   const chosenType = types.find((item) => item.slug === typeSlug)
   const address = addressFor(chosenType?.urlPrefix ?? null, slug)
 
@@ -129,9 +136,9 @@ export default function NewPage() {
   }
 
   return (
-    <main className="wide">
-      <Link className="back" to="/pages">
-        ← Pages
+    <main>
+      <Link className="back" to={listPath(askedSlug)}>
+        ← Back
       </Link>
       <h1>New page</h1>
       <form className="form" noValidate onSubmit={submit}>
@@ -201,7 +208,7 @@ export default function NewPage() {
           <button type="submit" disabled={busy} aria-busy={busy}>
             {busy ? 'Creating…' : 'Create page'}
           </button>
-          <Link className="button secondary" to="/pages">
+          <Link className="button secondary" to={listPath(askedSlug)}>
             Cancel
           </Link>
         </div>

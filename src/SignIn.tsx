@@ -62,59 +62,61 @@ export default function SignIn({ notice }: Props) {
 
   return (
     <main className="auth">
-      <p className="eyebrow">CMS admin</p>
-      <h1>Sign in</h1>
-      {notice && (
-        <p role="status" className="notice">
-          {notice}
-        </p>
-      )}
-      <form className="form" noValidate onSubmit={submit}>
-        <div className="field">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            ref={emailInput}
-            type="email"
-            autoComplete="username"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            aria-invalid={emailError !== null}
-            aria-describedby={emailError ? 'email-error' : undefined}
-          />
-          {emailError && (
-            <p id="email-error" className="field-error">
-              {emailError}
-            </p>
-          )}
-        </div>
-        <div className="field">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            ref={passwordInput}
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            aria-invalid={passwordError !== null}
-            aria-describedby={passwordError ? 'password-error' : undefined}
-          />
-          {passwordError && (
-            <p id="password-error" className="field-error">
-              {passwordError}
-            </p>
-          )}
-        </div>
-        {formError && (
-          <p role="alert" className="form-error">
-            {formError}
+      <p className="login-logo">CMS admin</p>
+      <div className="login-box">
+        <h1>Sign in</h1>
+        {notice && (
+          <p role="status" className="notice">
+            {notice}
           </p>
         )}
-        <button type="submit" disabled={busy} aria-busy={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
+        <form className="form" noValidate onSubmit={submit}>
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              ref={emailInput}
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              aria-invalid={emailError !== null}
+              aria-describedby={emailError ? 'email-error' : undefined}
+            />
+            {emailError && (
+              <p id="email-error" className="field-error">
+                {emailError}
+              </p>
+            )}
+          </div>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              ref={passwordInput}
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              aria-invalid={passwordError !== null}
+              aria-describedby={passwordError ? 'password-error' : undefined}
+            />
+            {passwordError && (
+              <p id="password-error" className="field-error">
+                {passwordError}
+              </p>
+            )}
+          </div>
+          {formError && (
+            <p role="alert" className="form-error">
+              {formError}
+            </p>
+          )}
+          <button type="submit" disabled={busy} aria-busy={busy}>
+            {busy ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+      </div>
     </main>
   )
 }
