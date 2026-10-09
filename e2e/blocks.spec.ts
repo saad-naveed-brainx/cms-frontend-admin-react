@@ -152,7 +152,7 @@ test('[UC-RS-22] moves a block, edits a field, adds and removes an item and dele
   const grid = card(page, '1. Feature grid')
   await grid.getByRole('button', { name: 'Add item' }).click()
   const third = grid.getByRole('group', { name: 'Item 3' })
-  await third.getByLabel('Title').fill('Open')
+  await third.getByLabel('Title', { exact: true }).fill('Open')
   await third.getByLabel('Text', { exact: true }).fill('Seven days a week.')
   await grid.getByRole('button', { name: 'Remove item 1' }).click()
   await expect(grid.getByRole('group', { name: /^Item \d$/ })).toHaveCount(2)

@@ -37,7 +37,7 @@ test('[UC-BE-06] the menu has an entry per real content type, each listing its o
   // Add New under Posts makes a post, at the post type's address.
   await menu.getByRole('link', { name: 'Posts', exact: true }).click()
   await menu.getByRole('link', { name: 'Add New' }).click()
-  await page.getByLabel('Title').fill(`Added post ${token}`)
+  await page.getByLabel('Title', { exact: true }).fill(`Added post ${token}`)
   await page.getByRole('button', { name: 'Create page' }).click()
   await expect(page.getByText(`/blog/added-post-${token}`)).toBeVisible()
   expect(await api.slugs()).toContain(`added-post-${token}`)

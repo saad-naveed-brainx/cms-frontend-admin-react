@@ -59,7 +59,7 @@ test('[UC-SP-13] Preview opens the page as saved at its site’s address, with t
   expect(await tab.evaluate(() => window.opener)).toBeNull()
 
   // A preview shows what is saved, so unsaved changes come first.
-  await page.getByLabel('Title').fill('Spring menu, second go')
+  await page.getByLabel('Title', { exact: true }).fill('Spring menu, second go')
   await expect(page.getByRole('button', { name: 'Preview' })).toBeDisabled()
 })
 

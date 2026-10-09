@@ -68,7 +68,7 @@ test('[UC-CS-09] the form checks first, and shows plainly what the API says', as
   const api = await fakeContent(page, [])
   await signedInAs(page, EVERYTHING)
   await page.goto('/pages/new')
-  const title = page.getByLabel('Title')
+  const title = page.getByLabel('Title', { exact: true })
   const slug = page.getByLabel('Slug')
   const create = page.getByRole('button', { name: 'Create page' })
 
@@ -172,7 +172,7 @@ for (const role of roles) {
 
     await page.goto('/pages/new')
     if (role.canCreate) {
-      await expect(page.getByLabel('Title')).toBeVisible()
+      await expect(page.getByLabel('Title', { exact: true })).toBeVisible()
     } else {
       await expect(
         page.getByText("You don't have permission to create pages on this site."),
@@ -191,8 +191,8 @@ for (const role of roles) {
       await expect(page.getByText('You can read this page but not change it.')).toHaveCount(
         editable ? 0 : 1,
       )
-      if (editable) await expect(page.getByLabel('Title')).toBeEditable()
-      else await expect(page.getByLabel('Title')).not.toBeEditable()
+      if (editable) await expect(page.getByLabel('Title', { exact: true })).toBeEditable()
+      else await expect(page.getByLabel('Title', { exact: true })).not.toBeEditable()
     }
   })
 }
@@ -215,7 +215,7 @@ test('[UC-CS-12] the slug follows the title until it is edited by hand, and the 
   await fakeContent(page, [])
   await signedInAs(page, EVERYTHING)
   await page.goto('/pages/new')
-  const title = page.getByLabel('Title')
+  const title = page.getByLabel('Title', { exact: true })
   const slug = page.getByLabel('Slug')
 
   await title.fill('Our Café & Bar!')

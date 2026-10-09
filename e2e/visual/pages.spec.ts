@@ -72,7 +72,7 @@ for (const width of [375, 768, 1280]) {
       await fakeContent(page, pages)
       await signedInAs(page, EVERYTHING)
       await page.goto('/pages/new')
-      await page.getByLabel('Title').fill('Our story')
+      await page.getByLabel('Title', { exact: true }).fill('Our story')
       await expect(page.getByText('Address: /our-story')).toBeVisible()
       await expect(page).toHaveScreenshot(`new-page-${width}.png`, { fullPage: true })
     })
