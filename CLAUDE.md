@@ -32,6 +32,17 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
 - Port is **5173** by default (`strictPort`); `vite.config.ts` reads `PORT` so a devflow slot or the
   browser tests (5190) can run beside it. Whatever port admin runs on must be in the API's `CORS_ORIGINS`.
 - `VITE_API_URL` points at **`:4001`** locally, not 4000.
+- **Who is signed in lives in `src/session.ts`**, outside React. Storage keys: `cms-admin.session`
+  (`{accessToken, expiresAt}` only) and `cms-admin.site` (the site being worked on). Everything else
+  (person, sites, role, permissions) is asked of `GET /auth/me` on every load. Calls go through `authed()`,
+  so the token and `X-Site-Id` travel with them and a 401 ends the session; `src/api.ts` is the only
+  place that calls `fetch`. There is no router yet: `App.tsx` switches on the session status, and
+  `CNT-02` adds one (`../docs/DECISIONS.md` D-020).
+- **Three kinds of browser test.** `e2e` answers the API's calls itself (server down, a 500, no sites)
+  and is what GitHub CI runs. `flow` is the real thing: it starts the **api repo** (`../api`) on its own
+  port (`DEVFLOW_PORT_API` + 500) and database (`cms_wt<N>_flow`), creates the clients with the real seed
+  command, and drives the real sign-in. It needs the api repo beside this one (in a slot:
+  `devflow-wt new <slug> api admin`) and is not in CI yet (backlog B-26). `visual` is macOS screenshots.
 
 ## Commands
 
@@ -43,5 +54,6 @@ npm run typecheck
 npm run lint         # oxlint
 npm run tokens       # no hex colours or raw px outside src/index.css
 npm run test:e2e     # Playwright browser tests (port 5190, or the slot's)
+npm run test:flow    # the real flow: starts ../api on its own database, then signs in for real
 npm run test:visual  # screenshots at 375/768/1280 vs the approved baselines
 ```
