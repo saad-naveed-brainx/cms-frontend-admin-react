@@ -1,0 +1,78 @@
+/*
+ * What the block components need besides Tailwind's utilities: tenant textures, rich text and the
+ * entrance motion. It lives beside the theme, not in the app's global stylesheet, so it travels with
+ * the blocks: the admin's live preview copies src/blocks and src/theme (docs/DECISIONS.md D-030).
+ * Colours come only from --site-* variables.
+ */
+
+/* ---- tenant textures -------------------------------------------------- */
+/* Painted between the tenant background and its content, never over it. */
+
+.site-texture-grain,
+.site-texture-grid {
+  position: relative;
+  isolation: isolate;
+}
+
+.site-texture-grain::before,
+.site-texture-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.site-texture-grain::before {
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.28'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+.site-texture-grid::before {
+  opacity: 0.36;
+  background-image:
+    repeating-linear-gradient(to right, var(--site-line) 0 1px, transparent 1px 88px),
+    repeating-linear-gradient(to bottom, var(--site-line) 0 1px, transparent 1px 88px);
+}
+
+/* ---- rich text -------------------------------------------------------- */
+
+.site-richtext > * + * {
+  margin-top: 1.15em;
+}
+
+.site-richtext strong {
+  color: var(--site-ink);
+  font-weight: 600;
+}
+
+.site-richtext a {
+  color: var(--site-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--site-accent);
+  text-underline-offset: 3px;
+}
+
+/* ---- entrance ---------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .site-rise {
+    animation: site-rise 620ms cubic-bezier(0.16, 0.84, 0.32, 1) both;
+  }
+
+  .site-rise-delay {
+    animation-delay: 140ms;
+  }
+}
+
+@keyframes site-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

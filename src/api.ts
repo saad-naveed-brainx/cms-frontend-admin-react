@@ -7,8 +7,11 @@
 export type User = { id: string; email: string; name: string }
 
 export type Membership = {
-  /** `primaryHost` is the site's main web address (`cafe.example.com`), for links to the website. */
-  site: { id: string; name: string; primaryHost: string | null }
+  /**
+   * `primaryHost` is the site's main web address (`cafe.example.com`), for links to the website;
+   * `theme` is its stored theme as it is (`{}` for a new site), for the live preview.
+   */
+  site: { id: string; name: string; primaryHost: string | null; theme?: unknown }
   role: { id: string; name: string }
   permissions: string[]
 }

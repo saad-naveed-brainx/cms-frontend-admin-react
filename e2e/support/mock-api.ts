@@ -22,6 +22,8 @@ export const orchard = {
     id: '0198f2a0-0000-7000-8000-000000000001',
     name: 'Orchard Bakery',
     primaryHost: 'orchard.test' as string | null,
+    /** As stored: laid over the default theme, as the website does. The live preview draws with it. */
+    theme: { typeSet: 'editorial', palette: { paper: '#fffaf0', brand: '#8a3b12' } } as object,
   },
   role: { id: '0198f2a0-0000-7000-8000-0000000000a1', name: 'Administrator' },
   permissions: ['content.read', 'content.write', 'members.manage'],
@@ -32,6 +34,7 @@ export const maple = {
     id: '0198f2a0-0000-7000-8000-000000000002',
     name: 'Maple Books',
     primaryHost: 'maple.test' as string | null,
+    theme: {} as object,
   },
   role: { id: '0198f2a0-0000-7000-8000-0000000000a2', name: 'Editor' },
   permissions: ['content.read', 'content.write'],
@@ -315,6 +318,7 @@ export async function fakeSites(
           id: `0198f2a0-0000-7000-8000-${String(900 + session.memberships.length).padStart(12, '0')}`,
           name: body.name,
           primaryHost: body.hostnames[0] ?? null,
+          theme: {},
         }
         const membership = {
           site,

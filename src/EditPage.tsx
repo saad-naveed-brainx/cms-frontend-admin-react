@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { ApiError, isRecord } from './api.ts'
 import BlocksEditor from './BlocksEditor.tsx'
+import LivePreview from './LivePreview.tsx'
 import { blockName, draftsFrom, focusField } from './block-drafts.ts'
 import type { Draft } from './block-drafts.ts'
 import { cleanBlock, sameBlocks, validateBlocks } from './block-schemas.ts'
@@ -21,7 +22,7 @@ type Answer = { key: string; loaded: Loaded }
 export default function EditPage() {
   const { id = '' } = useParams()
   const location = useLocation()
-  const { mayEdit, canPublish, siteHost } = useSignedIn()
+  const { mayEdit, canPublish, siteHost, siteTheme } = useSignedIn()
 
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -353,6 +354,7 @@ export default function EditPage() {
               </div>
             )}
           </div>
+          <LivePreview blocks={drafts.map((draft) => cleanBlock(draft.block))} theme={siteTheme} />
         </aside>
       </form>
     </main>

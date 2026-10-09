@@ -8,27 +8,29 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
 
 ## Invariants for this repo
 
-1. **Never copy a block component into this repo.** Block types, registry, components and the theme
-   system come from the `cms-blocks` package, so one implementation serves both the editor canvas
-   and the public site. See `../docs/DECISIONS.md` D-008.
-2. **The canvas is a same-origin `about:blank` iframe** with block components mounted into it via
-   `createPortal` — for style isolation and so `@media` queries measure the canvas rather than the
-   browser window. Never add a `sandbox` attribute without `allow-same-origin`; it would force an
-   opaque origin and cut off all DOM access.
+1. **`src/site-blocks/` is an exact copy of the website's block and theme code; never edit it here.**
+   Change a block in `../web`, then `npm run blocks:sync` and commit both repos. The gate's `blocks`
+   check fails when the copy differs from web (`../docs/DECISIONS.md` D-030, superseding D-008's package).
+2. **The live preview is a same-origin `srcdoc` iframe** with the copied components mounted into it via
+   `createPortal`, for style isolation (Tailwind's reset never reaches the admin) and so `@media`
+   queries measure the preview, not the window. Never add a `sandbox` attribute without
+   `allow-same-origin`; it would force an opaque origin and cut off all DOM access.
 3. **Permission checks here are UI affordance, not enforcement.** The API enforces. A hidden button
    is not a security control.
 4. The current site comes from the site switcher and travels with every request.
 
 ## Gotchas
 
-- **Tailwind 4 does not scan `node_modules`.** `src/index.css` must declare
-  `@source "../../node_modules/cms-blocks/src";` or shared block components render unstyled.
-- **React must not be duplicated.** `cms-blocks` declares `react`/`react-dom` as peer dependencies;
-  keep `resolve: { dedupe: ['react', 'react-dom'] }` in `vite.config.ts`. Two React copies produce
-  `Invalid hook call`, usually right after `npm link`.
-- **Drag sensors and the iframe.** dnd-kit listens on `document`; the iframe has a *different*
-  `document`. List-panel dragging works normally; dragging inside the canvas needs sensors pointed at
-  the iframe's document.
+- **Tailwind is only for the live preview.** `src/preview/preview.css` (`@import "tailwindcss" source(none)`,
+  `@source "../site-blocks"`) is imported with `?inline` and written into the preview frame; the admin's own
+  screens stay plain CSS (`src/index.css`). Fonts are self-hosted `@fontsource` packages, named as web's
+  `next/font` names them (`--font-fraunces` and so on). `@/` points at `src/site-blocks` (`vite.config.ts`,
+  `tsconfig.app.json`), so the copied files import exactly as they do in web.
+- **The live preview** (`LivePreview.tsx`, `../docs/DECISIONS.md` D-030) sits under the Publish box on the edit screen
+  and draws `drafts.map(cleanBlock)` (what Save would send) with web's `parseBlocks`, `BlockRenderer` and
+  `SiteThemeRoot`, in the site's theme from sign-in (`site.theme`, laid over the default with `resolveTheme`).
+  Desktop draws at 1280 pixels shrunk to fit; Mobile at 390. A block web would leave out is left out, with a note.
+  Links inside it do nothing; the entrance motion is off.
 - Port is **5173** by default (`strictPort`); `vite.config.ts` reads `PORT` so a devflow slot or the
   browser tests (5190) can run beside it. Whatever port admin runs on must be in the API's `CORS_ORIGINS`.
 - `VITE_API_URL` points at **`:4001`** locally, not 4000.
@@ -61,11 +63,10 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new
   site and selects it, then the screen goes to `/pages` with a "Site created." notice. The notice rides in
   the history entry, so a reload of that page shows it again (as with "Page created.").
-- **The block editor** (`BlocksEditor.tsx`, `block-schemas.ts`, `block-drafts.ts`) is on the edit screen. A form
-  per block, no canvas. `block-schemas.ts` is a **stop-gap copy** of what each block can hold (the five blocks the
-  website draws, without `richText`): until the shared `cms-blocks` package exists (`../docs/DECISIONS.md` D-008,
-  ticket XRP-01) a block type or field changed there must be changed in `web/src/blocks/types.ts` and
-  `web/src/blocks/parse-blocks.ts` too. Empty fields are left out when saving; a block of a type the editor does not
+- **The block editor** (`BlocksEditor.tsx`, `block-schemas.ts`, `block-drafts.ts`) is on the edit screen: a form
+  per block, beside the live preview. `block-schemas.ts` (the forms' fields) is written by hand: a block type or
+  field changed in `web/src/blocks/types.ts` and `parse-blocks.ts` must be changed here too, then
+  `npm run blocks:sync` for the drawing. Empty fields are left out when saving; a block of a type the editor does not
   know (rich text, anything unknown) is shown and saved exactly as it was; only what changed is sent; Publish waits
   for unsaved changes, since publishing does not save them. Links and image addresses are checked with the same rule
   the website applies (`https://`, `/`, `mailto:`, `tel:`), so a link the site would drop is refused here.
@@ -93,4 +94,6 @@ npm run tokens       # no hex colours or raw px outside src/index.css
 npm run test:e2e     # Playwright browser tests (port 5190, or the slot's)
 npm run test:flow    # the real flow: starts ../api on its own database, then signs in for real
 npm run test:visual  # screenshots at 375/768/1280 vs the approved baselines
+npm run blocks:sync  # copy web's blocks and theme into src/site-blocks (after changing them in web)
+npm run blocks:check # fail if src/site-blocks differs from ../web (skipped when ../web is absent)
 ```
