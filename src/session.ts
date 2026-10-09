@@ -108,7 +108,7 @@ function endSession(notice: string | null): void {
  */
 export async function authed(
   path: string,
-  options: { method?: 'GET' | 'POST'; body?: unknown } = {},
+  options: { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown } = {},
 ): Promise<unknown> {
   const siteId = state.status === 'signed-in' ? state.siteId : storageGet(SITE_KEY)
   try {

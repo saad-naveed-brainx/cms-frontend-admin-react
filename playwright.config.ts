@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 import { adminPort, flowApiPort, flowApiUrl, flowDatabase } from './e2e/flow/env.ts'
-import { admin, tenants } from './e2e/flow/tenants.ts'
+import { admin, solo, tenants } from './e2e/flow/tenants.ts'
 
 /**
  * Browser tests run against Vite's dev server: it has no overlays unless the build is broken, and
@@ -65,6 +65,7 @@ export default defineConfig({
               FLOW_ADMIN_ORIGIN: baseURL,
               FLOW_ADMIN: JSON.stringify(admin),
               FLOW_TENANTS: JSON.stringify(tenants),
+              FLOW_SOLO: JSON.stringify(solo),
             },
             reuseExistingServer: false,
             // Build, migrate, create the clients, start: about half a minute.

@@ -23,11 +23,14 @@ export type LoginResult = Profile & {
 /** The server answered, but not with a success. */
 export class ApiError extends Error {
   status: number
+  /** What the server sent with the error, parsed when it was JSON. */
+  body: unknown
 
-  constructor(status: number) {
+  constructor(status: number, body?: unknown) {
     super(`The server answered ${status}`)
     this.name = 'ApiError'
     this.status = status
+    this.body = body
   }
 }
 
@@ -42,7 +45,7 @@ export class NetworkError extends Error {
 const baseUrl = String(import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
 
 type RequestOptions = {
-  method?: 'GET' | 'POST'
+  method?: 'GET' | 'POST' | 'PATCH'
   body?: unknown
   /** Sent as `Authorization: Bearer`. */
   token?: string | null
@@ -70,7 +73,7 @@ export async function request(
   } catch {
     throw new NetworkError()
   }
-  if (!response.ok) throw new ApiError(response.status)
+  if (!response.ok) throw new ApiError(response.status, await readBody(response))
 
   try {
     return await response.json()
@@ -80,7 +83,24 @@ export async function request(
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+async function readBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch {
+    return undefined
+  }
+}
+
+/** The `field: message` lines a 400 lists under `errors` (api/src/content/content-input.ts), or none. */
+export function problemsOf(error: unknown): string[] {
+  if (!(error instanceof ApiError) || !isRecord(error.body)) return []
+  const { errors } = error.body
+  return Array.isArray(errors)
+    ? errors.filter((line): line is string => typeof line === 'string')
+    : []
+}
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
