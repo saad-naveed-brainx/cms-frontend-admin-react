@@ -14,6 +14,7 @@ export function useSignedIn() {
     // These screens only exist inside the signed-in frame; a sign-out replaces them in the same update.
     return {
       userId: null,
+      siteName: null,
       siteHost: null,
       siteTheme: {} as unknown,
       canCreate: false,
@@ -26,6 +27,8 @@ export function useSignedIn() {
   const permissions = membership?.permissions ?? []
   return {
     userId: state.user.id,
+    /** The current site's name, as its pages' titles end ("About — Orchard Bakery"). */
+    siteName: membership?.site.name ?? null,
     /** The current site's main web address, for links to the website; null when it has none. */
     siteHost: membership?.site.primaryHost ?? null,
     /** The current site's stored theme, for the live preview; the preview lays it over the default. */

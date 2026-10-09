@@ -10,6 +10,9 @@ import { cleanBlock, sameBlocks, validateBlocks } from './block-schemas.ts'
 import { describeFailure, formatDate, listPath, pluralLabel, statusLabel } from './helpers.ts'
 import { fetchPage, publishPage, requestPreview, savePage, unpublishPage } from './pages-api.ts'
 import type { Page } from './pages-api.ts'
+import SeoBox from './SeoBox.tsx'
+import { seoChanges, seoDraftFrom, validateSeo } from './seo-fields.ts'
+import type { SeoDraft, SeoField } from './seo-fields.ts'
 import { external, previewUrl, siteUrl } from './site-links.ts'
 import { useSignedIn } from './useSignedIn.ts'
 
@@ -18,11 +21,11 @@ type Loaded = { status: 'not-found' } | { status: 'error' } | { status: 'ready';
 /** The last answer, and which request it was for: an answer for an older request counts as still loading. */
 type Answer = { key: string; loaded: Loaded }
 
-/** One page: its title and its blocks change here; its type, address and status are shown, and it can be published. The rest arrives with its own tickets. */
+/** One page: its title, its blocks and its search fields change here; its type, address and status are shown, and it can be published. The rest arrives with its own tickets. */
 export default function EditPage() {
   const { id = '' } = useParams()
   const location = useLocation()
-  const { mayEdit, canPublish, siteHost, siteTheme } = useSignedIn()
+  const { mayEdit, canPublish, siteHost, siteName, siteTheme } = useSignedIn()
 
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -31,6 +34,13 @@ export default function EditPage() {
   const [title, setTitle] = useState('')
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [blockErrors, setBlockErrors] = useState<Record<string, string>>({})
+  const [seo, setSeo] = useState<SeoDraft>({
+    seoTitle: '',
+    seoDescription: '',
+    canonicalUrl: '',
+    noIndex: false,
+  })
+  const [seoErrors, setSeoErrors] = useState<Partial<Record<SeoField, string>>>({})
   const [titleError, setTitleError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(
@@ -51,6 +61,8 @@ export default function EditPage() {
         setTitle(page.title)
         setDrafts(draftsFrom(page.blocks))
         setBlockErrors({})
+        setSeo(seoDraftFrom(page))
+        setSeoErrors({})
       })
       .catch((error) => {
         if (cancelled) return
@@ -106,7 +118,8 @@ export default function EditPage() {
     drafts.map((draft) => cleanBlock(draft.block)),
     page.blocks,
   )
-  const changed = titleChanged || blocksChanged
+  const seoBody = seoChanges(seo, page)
+  const changed = titleChanged || blocksChanged || Object.keys(seoBody).length > 0
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -129,14 +142,22 @@ export default function EditPage() {
 
     const problems = validateBlocks(drafts)
     setBlockErrors(problems)
+    const seoProblems = validateSeo(seo)
+    setSeoErrors(seoProblems)
     const firstProblem = Object.keys(problems)[0]
     if (firstProblem !== undefined) {
       focusField(firstProblem)
       return
     }
+    // The search boxes' ids are their field names (`seoTitle`).
+    const firstSeoProblem = Object.keys(seoProblems)[0]
+    if (firstSeoProblem !== undefined) {
+      document.getElementById(firstSeoProblem)?.focus()
+      return
+    }
 
     // Only what changed is sent, so a title edit never rewrites the blocks and the other way round.
-    const body: { title?: string; blocks?: unknown[] } = {}
+    const body: Parameters<typeof savePage>[1] = { ...seoBody }
     if (titleChanged) body.title = tidyTitle
     if (blocksChanged) body.blocks = drafts.map((draft) => cleanBlock(draft.block))
 
@@ -146,6 +167,7 @@ export default function EditPage() {
       const saved = await savePage(id, body)
       setAnswer({ key: requestKey, loaded: { status: 'ready', page: saved } })
       setTitle(saved.title)
+      setSeo(seoDraftFrom(saved))
       // The blocks as stored, in the cards that were on screen, so nothing jumps or loses its place.
       setDrafts((current) =>
         saved.blocks.length === current.length
@@ -161,8 +183,15 @@ export default function EditPage() {
         setAnswer({ key: requestKey, loaded: { status: 'not-found' } })
         return
       }
-      const failure = describeFailure(error, ['title'])
+      const failure = describeFailure(error, [
+        'title',
+        'seoTitle',
+        'seoDescription',
+        'canonicalUrl',
+      ])
       setTitleError(failure.fields.title ?? null)
+      const { title: _title, ...seoFailures } = failure.fields
+      setSeoErrors(seoFailures)
       setFormError(failure.form)
     } finally {
       inFlight.current = false
@@ -285,6 +314,20 @@ export default function EditPage() {
               )}
             </section>
           )}
+          <SeoBox
+            draft={seo}
+            errors={seoErrors}
+            editable={editable}
+            defaultTitle={
+              siteName ? `${title.trim() || page.title} — ${siteName}` : title.trim() || page.title
+            }
+            ownAddress={siteHost ? siteUrl(siteHost, page.path) : page.path}
+            siteName={siteName}
+            onChange={(next) => {
+              setSeo(next)
+              setNotice(null)
+            }}
+          />
         </div>
         <aside className="edit-side">
           <div className="postbox">

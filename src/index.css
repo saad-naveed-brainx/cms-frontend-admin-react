@@ -26,6 +26,9 @@
   --wp-red: #d63638;
   --wp-green: #00a32a;
   --wp-shadow: rgb(0 0 0 / 4%);
+  /* The search result preview (SEO box): a search engine's own link blue and grey text */
+  --serp-title: #1a0dab;
+  --serp-text: #4d5156;
 
   --bar-height: 32px;
   --menu-width: 160px;
@@ -180,7 +183,8 @@ textarea[aria-invalid='true'] {
   border-color: var(--wp-red);
 }
 
-input[readonly] {
+input[readonly],
+textarea[readonly] {
   background: var(--wp-stripe);
 }
 
@@ -794,6 +798,71 @@ dl.facts dd {
 
 .view-link {
   margin-top: 12px;
+}
+
+/* The search engines box (SEO-01): a search result preview, then the fields */
+.seo-inside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.serp {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid var(--wp-border-light);
+  border-radius: 4px;
+  font-family: Arial, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.serp p {
+  margin: 0;
+}
+
+.serp-label {
+  margin-bottom: 6px !important;
+  color: var(--wp-muted);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.serp-site {
+  color: var(--wp-heading);
+  font-size: 14px;
+}
+
+.serp-address {
+  color: var(--serp-text);
+  font-size: 12px;
+}
+
+.serp-title {
+  color: var(--serp-title);
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.serp-description {
+  color: var(--serp-text);
+  font-size: 14px;
+  line-height: 1.58;
+}
+
+.serp-empty {
+  font-style: italic;
+}
+
+.serp-hidden {
+  margin-top: 6px !important;
+  color: var(--wp-red);
+  font-size: 13px;
+}
+
+.seo-advanced .field {
+  margin-top: 10px;
 }
 
 /* The New site form: an address and, for the extra ones, a button to remove it */

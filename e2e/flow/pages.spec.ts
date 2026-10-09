@@ -29,7 +29,7 @@ test('[UC-CS-01] creates a page through the screen, and the real API has it', as
   await expect(page.getByRole('heading', { level: 1, name: 'New page' })).toBeVisible()
   await expect(page.getByLabel('Type')).toHaveValue('page')
 
-  await page.getByLabel('Title').fill(`About us ${token}`)
+  await page.getByLabel('Title', { exact: true }).fill(`About us ${token}`)
   await expect(page.getByLabel('Slug')).toHaveValue(`about-us-${token}`)
   await expect(page.getByText(`Address: /about-us-${token}`)).toBeVisible()
   await page.getByRole('button', { name: 'Create page' }).click()
@@ -66,7 +66,7 @@ test("[UC-CS-02] a post's address carries the blog prefix, before and after crea
 
   await page.goto('/pages/new')
   await page.getByLabel('Type').selectOption('post')
-  await page.getByLabel('Title').fill(`Hello world ${token}`)
+  await page.getByLabel('Title', { exact: true }).fill(`Hello world ${token}`)
   await expect(page.getByText(`Address: /blog/hello-world-${token}`)).toBeVisible()
   await page.getByRole('button', { name: 'Create page' }).click()
 
@@ -140,7 +140,7 @@ test('[UC-CS-04] changes a title through the screen, and the real API, the list 
   await openSite(page, api.siteId)
 
   await page.goto(`/pages/${made.id}`)
-  const title = page.getByLabel('Title')
+  const title = page.getByLabel('Title', { exact: true })
   const save = page.getByRole('button', { name: 'Save' })
   await expect(title).toHaveValue(`Old title ${token}`)
   await expect(save).toBeDisabled()
@@ -154,7 +154,7 @@ test('[UC-CS-04] changes a title through the screen, and the real API, the list 
   expect(stored.body).toMatchObject({ title: `New title ${token}`, path: `/edit-${token}` })
 
   await page.reload()
-  await expect(page.getByLabel('Title')).toHaveValue(`New title ${token}`)
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue(`New title ${token}`)
   await page.getByRole('link', { name: '← Pages' }).click()
   await expect(page.getByRole('link', { name: `New title ${token}` })).toBeVisible()
 })
@@ -170,7 +170,7 @@ test('[UC-CS-05] a taken address is shown on the slug, and nothing is created', 
   await openSite(page, api.siteId)
 
   await page.goto('/pages/new')
-  await page.getByLabel('Title').fill(`Taken ${token}`)
+  await page.getByLabel('Title', { exact: true }).fill(`Taken ${token}`)
   await expect(page.getByLabel('Slug')).toHaveValue(`taken-${token}`)
   await page.getByRole('button', { name: 'Create page' }).click()
 
@@ -178,7 +178,7 @@ test('[UC-CS-05] a taken address is shown on the slug, and nothing is created', 
     'That address is already used by another page.',
   )
   await expect(page).toHaveURL(/\/pages\/new$/)
-  await expect(page.getByLabel('Title')).toHaveValue(`Taken ${token}`)
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue(`Taken ${token}`)
   const slugs = await api.slugs()
   expect(slugs.filter((slug) => slug === `taken-${token}`)).toHaveLength(1)
 })

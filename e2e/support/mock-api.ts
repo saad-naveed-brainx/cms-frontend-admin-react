@@ -125,6 +125,10 @@ export type FakePage = {
   updatedAt: string
   blocks: unknown[]
   data: Record<string, unknown>
+  seoTitle: string | null
+  seoDescription: string | null
+  canonicalUrl: string | null
+  noIndex: boolean
 }
 
 const typeRef = (type: { id: string; slug: string; name: string }) => ({
@@ -151,12 +155,18 @@ export function fakePage(n: number, fields: Partial<FakePage> = {}): FakePage {
     updatedAt: `2026-10-0${1 + (n % 8)}T10:00:00.000Z`,
     blocks: [],
     data: {},
+    seoTitle: null,
+    seoDescription: null,
+    canonicalUrl: null,
+    noIndex: false,
     ...fields,
   }
 }
 
+/** A list row: the real API leaves out the blocks, the custom data and the search fields. */
+const DETAIL_ONLY = ['blocks', 'data', 'seoTitle', 'seoDescription', 'canonicalUrl', 'noIndex']
 const summaryOf = (page: FakePage) =>
-  Object.fromEntries(Object.entries(page).filter(([key]) => key !== 'blocks' && key !== 'data'))
+  Object.fromEntries(Object.entries(page).filter(([key]) => !DETAIL_ONLY.includes(key)))
 
 type Handler = (route: Route, request: Request) => boolean | Promise<boolean>
 

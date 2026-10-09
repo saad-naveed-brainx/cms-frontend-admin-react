@@ -24,7 +24,15 @@ export type PageSummary = {
   updatedAt: string
 }
 
-export type Page = PageSummary & { blocks: unknown[] }
+/** A page's search-engine fields (SEO-01): `null` is none, and the website then uses the page's own. */
+export type PageSeo = {
+  seoTitle: string | null
+  seoDescription: string | null
+  canonicalUrl: string | null
+  noIndex: boolean
+}
+
+export type Page = PageSummary & PageSeo & { blocks: unknown[] }
 
 export type PageList = {
   items: PageSummary[]
@@ -69,8 +77,18 @@ function isPageSummary(value: unknown): value is PageSummary {
   )
 }
 
+const textOrNull = (value: unknown) => value === null || typeof value === 'string'
+
 function isPage(value: unknown): value is Page {
-  return isRecord(value) && Array.isArray(value.blocks) && isPageSummary(value)
+  return (
+    isRecord(value) &&
+    Array.isArray(value.blocks) &&
+    textOrNull(value.seoTitle) &&
+    textOrNull(value.seoDescription) &&
+    textOrNull(value.canonicalUrl) &&
+    typeof value.noIndex === 'boolean' &&
+    isPageSummary(value)
+  )
 }
 
 export async function fetchTypes(): Promise<PageType[]> {
@@ -124,10 +142,10 @@ export async function createPage(body: {
   return answer
 }
 
-/** Saves what changed: the title, the blocks, or both. */
+/** Saves what changed: the title, the blocks, the search fields, or any of them. */
 export async function savePage(
   id: string,
-  body: { title?: string; blocks?: unknown[] },
+  body: { title?: string; blocks?: unknown[] } & Partial<PageSeo>,
 ): Promise<Page> {
   const answer = await authed(`/content/${encodeURIComponent(id)}`, {
     method: 'PATCH',

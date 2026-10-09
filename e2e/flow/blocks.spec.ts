@@ -92,7 +92,7 @@ test('[UC-RS-22] moves, edits, adds and removes an item and deletes a block, and
   const grid = card(page, '1. Feature grid')
   await grid.getByRole('button', { name: 'Add item' }).click()
   const third = grid.getByRole('group', { name: 'Item 3' })
-  await third.getByLabel('Title').fill('Open')
+  await third.getByLabel('Title', { exact: true }).fill('Open')
   await third.getByLabel('Text', { exact: true }).fill('Seven days a week.')
   await grid.getByRole('button', { name: 'Remove item 1' }).click()
   await page.getByRole('button', { name: 'Delete block 3' }).click()
@@ -185,7 +185,7 @@ test('[UC-RS-24] the finish line through the screens: sign in, create a site, cr
 
   // Its home page.
   await page.getByRole('link', { name: 'Create the first page' }).click()
-  await page.getByLabel('Title').fill('Home')
+  await page.getByLabel('Title', { exact: true }).fill('Home')
   await expect(page.getByLabel('Slug')).toHaveValue('home')
   await page.getByRole('button', { name: 'Create page' }).click()
   await expect(page.getByText('Page created.')).toBeVisible()

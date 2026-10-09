@@ -70,6 +70,13 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   know (rich text, anything unknown) is shown and saved exactly as it was; only what changed is sent; Publish waits
   for unsaved changes, since publishing does not save them. Links and image addresses are checked with the same rule
   the website applies (`https://`, `/`, `mailto:`, `tel:`), so a link the site would drop is refused here.
+- **The search engines box** (`SeoBox.tsx`, `seo-fields.ts`, SEO-01, `../docs/DECISIONS.md` D-033) sits under the blocks
+  on the edit screen, as Yoast's does: a search result preview that follows the typing, then SEO title, meta description
+  (each with Google's rough length, 60 and 160, as a guide only), "Hide this page from search engines" and, under Advanced
+  (open while it holds a value), the canonical address. The rules match the API's (200, 500, a full `https://` or
+  `http://` address); an emptied box is sent as `null`, and only changed fields are sent, with the title and blocks. Its
+  boxes' ids are their field names (`seoTitle`), so a problem focuses the box. Tests find the page's Title box with
+  `getByLabel('Title', { exact: true })`: a loose match also finds "SEO title".
 - **No Prettier config in this repo.** `npx prettier --write` with its defaults rewrites every file
   (double quotes, semicolons). If you format, pass `--no-semi --single-quote --print-width 100` and
   check `git diff --stat` for files you did not mean to touch.
