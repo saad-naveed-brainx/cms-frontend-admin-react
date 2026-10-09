@@ -127,6 +127,17 @@ export default function EditPage() {
 
   const { page } = load
   const editable = mayEdit(page.createdBy)
+  const published = page.status === 'published'
+  // One way to look at the page on its site: Preview while visitors cannot see it yet, View page once
+  // they can. Saving a published page updates it at once, so a preview of it would be the live page (D-035).
+  const offersPreview = siteHost !== null && !published
+  const actions = [offersPreview && 'Preview', canPublish && !published && 'Publish']
+  const waiting = actions.filter(Boolean)
+  const saveFirst = published
+    ? 'Save your changes first: visitors see the page as last saved.'
+    : waiting.length > 0
+      ? `Save your changes first. ${waiting.join(' and ')} ${waiting.length > 1 ? 'use' : 'uses'} the saved page.`
+      : null
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -368,12 +379,8 @@ export default function EditPage() {
                 <dt>Last changed</dt>
                 <dd>{formatDate(page.updatedAt)}</dd>
               </dl>
-              {changed && (canPublish || siteHost) && (
-                <p className="hint save-first">
-                  Save your changes first. Preview and Publish use the saved page.
-                </p>
-              )}
-              {page.status === 'published' && siteHost && (
+              {changed && saveFirst && <p className="hint save-first">{saveFirst}</p>}
+              {published && siteHost && (
                 <p className="view-link">
                   <a href={siteUrl(siteHost, page.path)} {...external}>
                     View page
@@ -381,14 +388,14 @@ export default function EditPage() {
                 </p>
               )}
             </div>
-            {(siteHost || (!editable && formError)) && (
+            {(offersPreview || (!editable && formError)) && (
               <div className="postbox-actions">
                 {!editable && formError && (
                   <p role="alert" className="form-error">
                     {formError}
                   </p>
                 )}
-                {siteHost && (
+                {offersPreview && (
                   <button
                     type="button"
                     className="secondary"

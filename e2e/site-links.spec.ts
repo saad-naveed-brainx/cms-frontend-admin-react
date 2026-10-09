@@ -83,7 +83,9 @@ test('[UC-SP-03] the list offers View only for published pages, and the home pag
   await expect(row('Draft plans').getByRole('link', { name: 'Edit' })).toBeVisible()
 })
 
-test('[UC-SP-04] the edit screen offers View page once the page is published', async ({ page }) => {
+test('[UC-SP-04] the edit screen offers one way to look at the page on its site: Preview before it is published, View page after', async ({
+  page,
+}) => {
   await fakeContent(page, [
     fakePage(1, { title: 'About', slug: 'about', status: 'published' }),
     fakePage(2, { title: 'Draft plans', slug: 'plans' }),
@@ -95,10 +97,17 @@ test('[UC-SP-04] the edit screen offers View page once the page is published', a
     'href',
     siteLink('orchard.test', '/about'),
   )
+  // Saving a published page updates it at once, so a preview would only show the live page again.
+  await expect(page.getByRole('button', { name: 'Preview' })).toHaveCount(0)
+  await page.getByLabel('Title', { exact: true }).fill('About us')
+  await expect(
+    page.getByText('Save your changes first: visitors see the page as last saved.'),
+  ).toBeVisible()
 
   await page.goto(`/pages/${fakePage(2).id}`)
   await expect(page.getByRole('heading', { level: 1, name: 'Draft plans' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'View page' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Preview' })).toBeEnabled()
 })
 
 test('[UC-SP-05] the Sites screen shows each site’s address and links to it', async ({ page }) => {
