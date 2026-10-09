@@ -6,6 +6,8 @@
  */
 @import "tailwindcss" source(none);
 @source "../site-blocks";
+/* The frame's own wrapper classes (the theme root fills the frame). */
+@source "../LivePreview.tsx";
 
 @import "@fontsource-variable/fraunces/full.css";
 @import "@fontsource-variable/karla";
