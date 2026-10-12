@@ -24,6 +24,7 @@
   --wp-blue-dark: #135e96;
   --wp-on-blue: #ffffff;
   --wp-red: #d63638;
+  --wp-red-dark: #b32d2e;
   --wp-yellow: #dba617;
   --wp-green: #00a32a;
   --wp-shadow: rgb(0 0 0 / 4%);
@@ -259,6 +260,38 @@ button:disabled:hover {
   background: var(--wp-stripe);
   border-color: var(--wp-border-light);
   cursor: default;
+}
+
+/* Deleting something for good (a site, D-039): red, as WordPress marks it. */
+button.danger {
+  color: var(--wp-on-blue);
+  background: var(--wp-red);
+  border-color: var(--wp-red);
+}
+
+button.danger:hover {
+  color: var(--wp-on-blue);
+  background: var(--wp-red-dark);
+  border-color: var(--wp-red-dark);
+}
+
+button.secondary.danger {
+  color: var(--wp-red);
+  background: var(--wp-stripe);
+  border-color: var(--wp-red);
+}
+
+button.secondary.danger:hover {
+  color: var(--wp-red-dark);
+  background: var(--wp-page);
+  border-color: var(--wp-red-dark);
+}
+
+button.danger:disabled,
+button.danger:disabled:hover {
+  color: var(--wp-faint);
+  background: var(--wp-stripe);
+  border-color: var(--wp-border-light);
 }
 
 button.small {
@@ -654,6 +687,19 @@ button.adminbar-item:hover {
 
 .action-col {
   text-align: right;
+}
+
+.row-buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-site {
+  margin-top: 24px;
+  border-left: 4px solid var(--wp-red);
 }
 
 /* Boxes: the Dashboard's welcome panel and WordPress's "postbox" */

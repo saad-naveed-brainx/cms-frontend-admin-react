@@ -263,7 +263,10 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
 }
 
 /** What the mock `/auth/me` answers with. A test can change it while the page is open. */
-export type MockSession = { memberships: (typeof orchard)[]; meFails: boolean }
+/** A membership as `/auth/me` answers; `ownsOrganization` says the person may delete the site (D-039). */
+export type MockMembership = typeof orchard & { ownsOrganization?: boolean }
+
+export type MockSession = { memberships: MockMembership[]; meFails: boolean }
 
 /**
  * Opens the app signed in as the mock person, on one site (or, with `sites: false`, on none), with
@@ -315,6 +318,8 @@ export async function fakeSites(
 ) {
   const state = {
     posted: [] as SiteBody[],
+    /** The ids of the sites deleted, in order (D-039). */
+    deleted: [] as string[],
     calls: [] as string[],
     override: null as Handler | null,
   }
@@ -322,12 +327,20 @@ export async function fakeSites(
   await page.route(
     (url) =>
       url.port === String(flowApiPort) &&
-      (url.pathname === '/organizations' || url.pathname === '/sites'),
+      (url.pathname === '/organizations' || /^\/sites(\/|$)/.test(url.pathname)),
     async (route, request) => {
       const method = request.method()
       state.calls.push(`${method} ${new URL(request.url()).pathname}`)
       if (state.override && (await state.override(route, request))) return
 
+      const deleting = new URL(request.url()).pathname.match(/^\/sites\/([^/]+)$/)
+      if (deleting && method === 'DELETE') {
+        const at = session.memberships.findIndex((item) => item.site.id === deleting[1])
+        if (at === -1) return fulfill(route, 404, { message: 'Site not found' })
+        session.memberships.splice(at, 1)
+        state.deleted.push(deleting[1])
+        return route.fulfill({ status: 204 })
+      }
       if (method === 'GET') return fulfill(route, 200, { items: organizations })
       if (method === 'POST') {
         const body = request.postDataJSON() as SiteBody
@@ -349,6 +362,7 @@ export async function fakeSites(
             'content.edit_own',
             'content.publish',
           ],
+          ownsOrganization: true,
         }
         session.memberships.push(membership)
         return fulfill(route, 201, {

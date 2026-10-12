@@ -63,5 +63,14 @@ export const greeter = {
   tenant: { organization: 'Front Room Ltd', site: 'Front Room', host: 'front.test' },
 }
 
+/**
+ * A seventh person, who deletes their only site through the Sites screen (D-039), so no other test
+ * uses her.
+ */
+export const remover = {
+  admin: { email: 'rae@remove.test', name: 'Rae Remover', password: 'remove-flow-password' },
+  tenant: { organization: 'Remove Co', site: 'Removal Studio', host: 'removal.test' },
+}
+
 /** Everyone with a site of their own, each made by the real seed command. */
-export const people = [solo, maker, finisher, stylist, greeter]
+export const people = [solo, maker, finisher, stylist, greeter, remover]

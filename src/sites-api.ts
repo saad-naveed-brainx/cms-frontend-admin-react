@@ -50,3 +50,8 @@ export async function createSite(body: {
     hostnames: answer.hostnames,
   }
 }
+
+/** Deletes a site for good (D-039): only the owner of its organisation may. The API answers 204. */
+export async function deleteSite(siteId: string): Promise<void> {
+  await authed(`/sites/${encodeURIComponent(siteId)}`, { method: 'DELETE' })
+}
