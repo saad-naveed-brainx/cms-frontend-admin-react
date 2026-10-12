@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { admin, finisher } from './tenants.ts'
-import { openSite, publicPage, realApi, signInThroughTheScreen, sql, unique } from './support.ts'
+import { openSite, publicPage, realApi, signInThroughTheScreen, unique } from './support.ts'
 
 /**
  * The block editor on the REAL flow: a real browser, the real admin, the real API and a real
@@ -117,13 +117,12 @@ test('[UC-RS-22] moves, edits, adds and removes an item and deletes a block, and
   await expect(save(page)).toBeDisabled()
 })
 
-test('[UC-RS-23] a page that already holds rich text and an unknown block shows them, keeps them exactly when saved, and the real API refuses new rich text', async ({
+test('[UC-RS-23] a page that already holds a block the editor does not know shows it, and keeps it exactly when saved', async ({
   page,
   request,
 }) => {
   const api = await realApi(request, admin, ORCHARD)
   const token = unique()
-  const rich = { type: 'richText', heading: 'Old', html: '<p>Written before the rule</p>' }
   const unknown = { type: 'hologram', note: 'from the future' }
   const made = await api.createPage({
     type: 'page',
@@ -131,37 +130,19 @@ test('[UC-RS-23] a page that already holds rich text and an unknown block shows 
     slug: `legacy-${token}`,
     blocks: [{ type: 'hero', headline: 'Hi' }, unknown],
   })
-  // From before the API refused rich text: the API will not take one now, so it goes in by SQL.
-  sql(
-    `UPDATE content SET blocks = '${JSON.stringify([{ type: 'hero', headline: 'Hi' }, rich, unknown])}'::jsonb WHERE id = '${made.id}'`,
-  )
 
   await signInThroughTheScreen(page)
   await openSite(page, api.siteId)
   await page.goto(`/pages/${made.id}`)
-  await expect(page.getByRole('heading', { level: 3 })).toHaveText([
-    '1. Hero',
-    '2. Rich text',
-    '3. Unknown block',
-  ])
-  await expect(page.getByRole('button', { name: /^Add Rich text/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { level: 3 })).toHaveText(['1. Hero', '2. Unknown block'])
 
   await card(page, '1. Hero').getByLabel('Headline').fill('Hello again')
   await save(page).click()
   await expect(page.getByText('Saved.')).toBeVisible()
   expect((await api.getPage(made.id)).body.blocks).toEqual([
     { type: 'hero', headline: 'Hello again' },
-    rich,
     unknown,
   ])
-
-  // The real API: the block already there may stay, a changed or a new one is a 400.
-  const changed = await api.patchPage(made.id, { blocks: [{ ...rich, html: '<p>Changed</p>' }] })
-  expect(changed.status).toBe(400)
-  const added = await api.patchPage(made.id, { blocks: [{ type: 'richText', html: '<p>New</p>' }] })
-  expect(added.status).toBe(400)
-  expect(added.body.errors[0]).toMatch(/^blocks\.0: a richText block/)
-  expect((await api.getPage(made.id)).body.blocks).toHaveLength(3)
 })
 
 test('[UC-RS-24] the finish line through the screens: sign in, create a site (its front page answers at once), create a page, add a block, publish, and the site serves it', async ({

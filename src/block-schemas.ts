@@ -5,8 +5,8 @@ import { isRecord } from './api.ts'
  * saving, and what must be filled before it can be saved. This is a stop-gap copy of the block
  * types the website draws (web/src/blocks/types.ts): they are meant to come from the shared
  * `cms-blocks` package (docs/DECISIONS.md D-008, ticket XRP-01), and until that exists the two
- * must be changed together. `richText` is not offered: its HTML is not safe to store until it is
- * cleaned on save (BLK-05).
+ * must be changed together. A text block's HTML is made by `RichTextField` and cleaned again by the
+ * API on save (D-041).
  */
 
 export type Block = Record<string, unknown>
@@ -28,6 +28,15 @@ type ChoiceField = {
   options: { value: string; label: string }[]
 }
 type ToggleField = { kind: 'toggle'; key: string; label: string; hint?: string }
+/** Formatted text, as HTML (`RichTextField`). Empty is no text at all. */
+type RichTextField = {
+  kind: 'richtext'
+  key: string
+  label: string
+  max: number
+  required?: boolean
+  hint?: string
+}
 /** An object made of sub-fields. When it is optional, it is only checked once something in it is filled. */
 type GroupField = { kind: 'group'; key: string; label: string; required?: boolean; fields: Field[] }
 /** A list of objects made of sub-fields. Entries left completely empty are dropped when saving. */
@@ -40,7 +49,7 @@ type ListField = {
   required?: boolean
   fields: Field[]
 }
-export type Field = TextField | ChoiceField | ToggleField | GroupField | ListField
+export type Field = TextField | ChoiceField | ToggleField | RichTextField | GroupField | ListField
 
 export type BlockSchema = {
   type: string
@@ -128,6 +137,15 @@ export const BLOCK_SCHEMAS: BlockSchema[] = [
     blank: () => ({ type: 'hero' }),
   },
   {
+    type: 'richText',
+    name: 'Text',
+    fields: [
+      { kind: 'text', key: 'heading', label: 'Heading', max: 200 },
+      { kind: 'richtext', key: 'html', label: 'Text', max: 50_000, required: true },
+    ],
+    blank: () => ({ type: 'richText' }),
+  },
+  {
     type: 'imageText',
     name: 'Image and text',
     fields: [
@@ -202,11 +220,18 @@ export const schemaFor = (type: unknown): BlockSchema | undefined =>
   BLOCK_SCHEMAS.find((schema) => schema.type === type)
 
 /** Where a link may point: this site, another web address, an email or a phone number. Not `javascript:`. */
-const SAFE_LINK = /^(?:https?:\/\/|mailto:|tel:|\/(?!\/)|#)/i
+export const SAFE_LINK = /^(?:https?:\/\/|mailto:|tel:|\/(?!\/)|#)/i
 /** Where an image may load from: a web address or a file on this site. */
 const SAFE_IMAGE = /^(?:https?:\/\/|\/(?!\/))/i
 
 const textOf = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')
+
+/** Whether HTML holds no words: no text once its tags are taken away. */
+const noWords = (html: string): boolean =>
+  html
+    .replace(/<[^>]*>/g, '')
+    .replaceAll('&nbsp;', ' ')
+    .trim() === ''
 
 /**
  * What to store for one field, or `undefined` to leave it out: text is trimmed and an empty one is
@@ -221,6 +246,8 @@ function cleanField(value: unknown, field: Field): unknown {
       return field.options.some((option) => option.value === value) ? value : undefined
     case 'toggle':
       return value === true ? true : undefined
+    case 'richtext':
+      return typeof value === 'string' && !noWords(value) ? value : undefined
     case 'group': {
       const object = cleanObject(isRecord(value) ? value : {}, field.fields)
       return Object.keys(object).length === 0 ? undefined : object
@@ -273,6 +300,15 @@ function validateField(
         errors[path] = 'Start with https://, / for a page on this site, mailto: or tel:.'
       } else if (field.check === 'image' && !SAFE_IMAGE.test(text)) {
         errors[path] = 'Start with https://, or / for a file on this site.'
+      }
+      return
+    }
+    case 'richtext': {
+      const html = typeof value === 'string' ? value : ''
+      if (noWords(html)) {
+        if (required && field.required) errors[path] = `Enter the ${lower(field.label)}.`
+      } else if (html.length > field.max) {
+        errors[path] = 'This text is too long. Split it into two text blocks.'
       }
       return
     }

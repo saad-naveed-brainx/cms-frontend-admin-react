@@ -64,9 +64,13 @@ const parsers: Parsers = {
     };
   },
 
-  // Never drawn for now: its HTML is meant to be cleaned when it is saved (BLK-05), and nothing
-  // cleans it yet, so what is stored cannot be trusted as markup. See docs/DECISIONS.md D-021.
-  richText: () => undefined,
+  // Its HTML was cleaned when the page was saved (the API's clean-blocks, D-041), so it is drawn
+  // as stored (invariant 5: cleaned on write, never on read).
+  richText: (raw) => {
+    const html = text(raw.html);
+    if (html === undefined) return undefined;
+    return { type: 'richText', heading: text(raw.heading), html };
+  },
 
   imageText: (raw) => {
     const heading = text(raw.heading);
@@ -91,9 +95,7 @@ const parsers: Parsers = {
     items: entries(raw.items, (item) => {
       const title = text(item.title);
       const body = text(item.body);
-      return title !== undefined && body !== undefined
-        ? { title, body, label: text(item.label) }
-        : undefined;
+      return title !== undefined && body !== undefined ? { title, body, label: text(item.label) } : undefined;
     }),
   }),
 

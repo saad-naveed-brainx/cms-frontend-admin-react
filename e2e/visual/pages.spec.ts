@@ -52,7 +52,11 @@ const withBlocks = fakePage(7, {
         { title: 'Local flour', body: 'Milled twenty miles away.' },
       ],
     },
-    { type: 'richText', html: '<p>Stored before the rule</p>' },
+    {
+      type: 'richText',
+      heading: 'Our story',
+      html: '<p>We bake <strong>every</strong> morning.</p><ul><li><p>Rye</p></li><li><p>Seed cake</p></li></ul>',
+    },
     { type: 'cta', heading: 'Visit us', action: { label: 'Find the shop', href: '/contact' } },
   ],
 })

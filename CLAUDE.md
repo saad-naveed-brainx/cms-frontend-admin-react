@@ -95,9 +95,15 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   per block, beside the live preview. `block-schemas.ts` (the forms' fields) is written by hand: a block type or
   field changed in `web/src/blocks/types.ts` and `parse-blocks.ts` must be changed here too, then
   `npm run blocks:sync` for the drawing. Empty fields are left out when saving; a block of a type the editor does not
-  know (rich text, anything unknown) is shown and saved exactly as it was; only what changed is sent; Publish waits
+  know is shown and saved exactly as it was; only what changed is sent; Publish waits
   for unsaved changes, since publishing does not save them. Links and image addresses are checked with the same rule
   the website applies (`https://`, `/`, `mailto:`, `tel:`), so a link the site would drop is refused here.
+- **The Text block** (`richText`, `RichTextField.tsx`, `../docs/DECISIONS.md` D-041) is a TipTap editor (StarterKit, exact
+  versions) with a toolbar: bold, italic, heading, subheading, lists, quote, link (a `window.prompt`, checked with
+  `SAFE_LINK`). It is limited to what the API keeps (no code, rules or images; links without `target`/`rel`; no empty
+  paragraph kept at the end) and sends `''` when empty. TipTap re-applies `useEditor`'s options on every render, so the
+  box's `aria-*` attributes live there, not in a later `setOptions`. A value from outside (after a save) replaces the text
+  without counting as a change. Pasted HTML goes through TipTap's schema, and the API cleans it again on save.
 - **The search engines box** (`SeoBox.tsx`, `seo-fields.ts`, SEO-01, `../docs/DECISIONS.md` D-033) sits under the blocks
   on the edit screen, as Yoast's does: a search result preview that follows the typing, then SEO title, meta description
   (each with Google's rough length, 60 and 160, as a guide only), "Hide this page from search engines" and, under Advanced
