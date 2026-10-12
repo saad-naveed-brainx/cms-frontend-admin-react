@@ -34,7 +34,7 @@ export default function LivePreview({ blocks, theme }: Props) {
           {hidden > 0 && (
             <p className="hint live-preview-note">
               {hidden === 1 ? '1 block is' : `${hidden} blocks are`} not shown: the site leaves out
-              a block whose required fields are empty, and rich text for now.
+              a block until its required fields are filled.
             </p>
           )}
         </>
