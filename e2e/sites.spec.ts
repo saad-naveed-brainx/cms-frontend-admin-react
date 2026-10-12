@@ -57,12 +57,13 @@ test('[UC-RS-13] the form checks first: nothing is sent until the name and every
   await expect(secondAddress(page)).toHaveCount(0)
   await expect(nameField(page)).not.toHaveAccessibleDescription('Enter a name.')
 
-  // Not one request was made for the site until now. Spaces, the scheme and the slash are tidied; the API does the rest.
+  // Not one request was made for the site until now. Spaces, the scheme and the slash are tidied, and on
+  // this computer `.localhost` is added (D-038); the API does the rest.
   expect(api.posted).toEqual([])
   await firstAddress(page).fill(' https://Cafe.test/ ')
   await create(page).click()
   await expect(page).toHaveURL(/\/pages$/)
-  expect(api.posted).toEqual([{ name: 'Orchard Cafe', hostnames: ['Cafe.test'] }])
+  expect(api.posted).toEqual([{ name: 'Orchard Cafe', hostnames: ['Cafe.test.localhost'] }])
 })
 
 test('[UC-RS-13] a taken address is shown on the address that is taken, and what was typed stays', async ({
@@ -73,7 +74,7 @@ test('[UC-RS-13] a taken address is shown on the address that is taken, and what
   api.override = (route, request) => {
     if (request.method() !== 'POST') return false
     void fulfill(route, 409, {
-      message: 'The web address "taken.test" is already used by another site',
+      message: 'The web address "taken.test.localhost" is already used by another site',
     })
     return true
   }
@@ -202,7 +203,7 @@ test('[UC-RS-13] with several organisations the person must choose one, and the 
   expect(api.posted).toEqual([
     {
       name: 'Orchard Annex',
-      hostnames: ['annex.test'],
+      hostnames: ['annex.test.localhost'],
       organizationId: orchardSecond.id,
     },
   ])
@@ -246,7 +247,7 @@ test('[UC-RS-13] a site that was created but whose arrival cannot be confirmed s
   expect(api.posted).toHaveLength(1)
 })
 
-test('[UC-LA-01] on this computer the New site form says to use an address ending in .localhost; on a live server it does not', async ({
+test('[UC-LA-01] on this computer the hint says .localhost is added for you; on a live server it does not', async ({
   page,
 }) => {
   const session = await signedInAs(page, EVERYTHING)
@@ -254,11 +255,9 @@ test('[UC-LA-01] on this computer the New site form says to use an address endin
   await fakeContent(page, [])
   await page.goto('/sites/new')
   await expect(nameField(page)).toBeVisible()
-  const hint = page.locator('#address-hint')
-  await expect(hint).toContainText(
-    'On this computer, use an address ending in .localhost, like cafe.localhost',
+  await expect(page.locator('#address-hint')).toContainText(
+    'On this computer .localhost is added for you (cafe is saved as cafe.localhost)',
   )
-  await expect(firstAddress(page)).toHaveAccessibleDescription(/ending in \.localhost/)
 
   // The same check, for the addresses an admin can be opened at.
   // The module as the browser loads it from the dev server; a path given at run time, so TypeScript leaves it be.
@@ -283,5 +282,67 @@ test('[UC-LA-01] on this computer the New site form says to use an address endin
     ['admin.localhost', true],
     ['admin.example.com', false],
     ['localhost.example.com', false],
+  ])
+})
+
+test('[UC-LA-02] on this computer .localhost is added to every address, shown before it is saved; on a live server addresses are kept as typed', async ({
+  page,
+}) => {
+  const session = await signedInAs(page, EVERYTHING)
+  const api = await fakeSites(page, session, [orchardHoldings])
+  await fakeContent(page, [])
+  await page.goto('/sites/new')
+  await nameField(page).fill('Shop')
+  await firstAddress(page).fill('xyz')
+  await expect(firstAddress(page)).toHaveAccessibleDescription(/^Will be saved as xyz\.localhost\./)
+  await page.getByRole('button', { name: 'Add another address' }).click()
+  await secondAddress(page).fill('shop.localhost')
+  await expect(page.getByText('Will be saved as')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Add another address' }).click()
+  await page.getByLabel('Web address 3', { exact: true }).fill('https://Cafe.Example.com:3000/')
+  await expect(page.getByText('Will be saved as Cafe.Example.com.localhost.')).toBeVisible()
+
+  await create(page).click()
+  await expect(page).toHaveURL(/\/pages$/)
+  expect(api.posted).toEqual([
+    { name: 'Shop', hostnames: ['xyz.localhost', 'shop.localhost', 'Cafe.Example.com.localhost'] },
+  ])
+
+  // The rule itself, on this computer and on a live server.
+  const saved = await page.evaluate(async (module) => {
+    const { savedAddress } = (await import(module)) as {
+      savedAddress: (tidied: string, local: boolean) => string
+    }
+    const typed = [
+      'xyz',
+      'cafe.example.com',
+      'cafe.test:3000',
+      'cafe.',
+      'bakery.localhost',
+      'localhost',
+      '',
+    ]
+    return {
+      here: typed.map((address) => savedAddress(address, true)),
+      live: typed.map((address) => savedAddress(address, false)),
+    }
+  }, '/src/helpers.ts')
+  expect(saved.here).toEqual([
+    'xyz.localhost',
+    'cafe.example.com.localhost',
+    'cafe.test.localhost',
+    'cafe.localhost',
+    'bakery.localhost',
+    'localhost',
+    '',
+  ])
+  expect(saved.live).toEqual([
+    'xyz',
+    'cafe.example.com',
+    'cafe.test:3000',
+    'cafe.',
+    'bakery.localhost',
+    'localhost',
+    '',
   ])
 })

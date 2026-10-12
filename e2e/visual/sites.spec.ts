@@ -34,7 +34,7 @@ for (const width of [375, 768, 1280]) {
       await fakeSites(page, session, [orchardHoldings, orchardSecond])
       await page.goto('/sites/new')
       await page.getByLabel('Name', { exact: true }).fill('Orchard Cafe')
-      await page.getByLabel('Web address', { exact: true }).fill('cafe.localhost')
+      await page.getByLabel('Web address', { exact: true }).fill('cafe')
       await page.getByRole('button', { name: 'Add another address' }).click()
       await page.getByRole('button', { name: 'Create site' }).click()
       await expect(page.getByText('Choose an organisation.')).toBeVisible()
