@@ -74,7 +74,9 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   routed even when they belong to none. The organisation is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new
   site and selects it, then the screen goes to `/pages` with a "Site created." notice. The notice rides in
-  the history entry, so a reload of that page shows it again (as with "Page created.").
+  the history entry, so a reload of that page shows it again (as with "Page created."). Opened on this computer
+  (`onThisComputer()` in `site-links.ts`: `localhost`, `127.0.0.1`, `*.localhost`), the address hint says to use
+  `<name>.localhost`, since a real domain only reaches the live server.
 - **The front page** (`FrontPageNotice.tsx`, `../docs/DECISIONS.md` D-037) is the page at `/home`, which every new site
   starts with, published. The Dashboard and the Pages list (all content, or Pages) ask `GET /content?path=/home`; when
   there is none, or it is not published, a notice says visitors see "Page not found" and offers **Create the front page**

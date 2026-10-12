@@ -245,3 +245,43 @@ test('[UC-RS-13] a site that was created but whose arrival cannot be confirmed s
   await expect(create(page)).toHaveCount(0)
   expect(api.posted).toHaveLength(1)
 })
+
+test('[UC-LA-01] on this computer the New site form says to use an address ending in .localhost; on a live server it does not', async ({
+  page,
+}) => {
+  const session = await signedInAs(page, EVERYTHING)
+  await fakeSites(page, session, [orchardHoldings])
+  await fakeContent(page, [])
+  await page.goto('/sites/new')
+  await expect(nameField(page)).toBeVisible()
+  const hint = page.locator('#address-hint')
+  await expect(hint).toContainText(
+    'On this computer, use an address ending in .localhost, like cafe.localhost',
+  )
+  await expect(firstAddress(page)).toHaveAccessibleDescription(/ending in \.localhost/)
+
+  // The same check, for the addresses an admin can be opened at.
+  // The module as the browser loads it from the dev server; a path given at run time, so TypeScript leaves it be.
+  const answers = await page.evaluate(async (module) => {
+    const { onThisComputer } = (await import(module)) as {
+      onThisComputer: (hostname: string) => boolean
+    }
+    const hosts = [
+      'localhost',
+      '127.0.0.1',
+      '[::1]',
+      'admin.localhost',
+      'admin.example.com',
+      'localhost.example.com',
+    ]
+    return hosts.map((hostname) => [hostname, onThisComputer(hostname)])
+  }, '/src/site-links.ts')
+  expect(answers).toEqual([
+    ['localhost', true],
+    ['127.0.0.1', true],
+    ['[::1]', true],
+    ['admin.localhost', true],
+    ['admin.example.com', false],
+    ['localhost.example.com', false],
+  ])
+})
