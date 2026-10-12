@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { flowApiUrl } from './env.ts'
 import { maker, tenants } from './tenants.ts'
-import { realApi, signInThroughTheScreen, unique } from './support.ts'
+import { realApi, signInThroughTheScreen, sql, unique } from './support.ts'
 
 /**
  * Creating a site on the REAL flow: a real browser, the real admin, the real API and a real
@@ -19,7 +19,9 @@ test('[UC-RS-12] creates a site through the screen: it is selected, holds only i
 }) => {
   const token = unique()
   const siteName = `Maker Cafe ${token}`
-  const host = `cafe-${token}.test`
+  const typed = `cafe-${token}.test`
+  // On this computer the screen adds `.localhost`, so the browser can open the site (D-038).
+  const host = `${typed}.localhost`
   await signInThroughTheScreen(page, maker.admin)
   // One site so far: no Site control yet.
   await expect(page.getByLabel('Site')).toHaveCount(0)
@@ -29,7 +31,7 @@ test('[UC-RS-12] creates a site through the screen: it is selected, holds only i
   // Mia owns one organisation, so she is not asked which.
   await expect(page.getByLabel('Organisation')).toHaveCount(0)
   await page.getByLabel('Name', { exact: true }).fill(`  ${siteName}  `)
-  await page.getByLabel('Web address', { exact: true }).fill(`https://${host.toUpperCase()}/`)
+  await page.getByLabel('Web address', { exact: true }).fill(`https://${typed.toUpperCase()}/`)
   await page.getByRole('button', { name: 'Create site' }).click()
 
   await expect(page).toHaveURL(/\/pages$/)
@@ -71,7 +73,14 @@ test('[UC-RS-12] an address another site uses is shown on that address, and noth
 
   await newSiteLink(page).click()
   await page.getByLabel('Name', { exact: true }).fill(siteName)
-  await page.getByLabel('Web address', { exact: true }).fill(tenants[0].host.toUpperCase())
+  // Another site's address (one more for Orchard, so no list anyone counts changes), typed in capitals
+  // and without `.localhost`, which the screen adds (D-038).
+  const taken = `orchard-${token}`
+  sql(
+    `INSERT INTO hostnames (site_id, hostname, is_primary)
+       SELECT site_id, '${taken}.localhost', false FROM hostnames WHERE hostname = '${tenants[0].host}'`,
+  )
+  await page.getByLabel('Web address', { exact: true }).fill(taken.toUpperCase())
   await page.getByRole('button', { name: 'Create site' }).click()
 
   await expect(page.getByLabel('Web address', { exact: true })).toHaveAccessibleDescription(

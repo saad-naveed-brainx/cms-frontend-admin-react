@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { describeSiteFailure, tidyAddress } from './helpers.ts'
+import { describeSiteFailure, savedAddress, tidyAddress } from './helpers.ts'
 import { reloadProfile } from './session.ts'
 import { onThisComputer } from './site-links.ts'
 import { createSite, fetchOrganizations } from './sites-api.ts'
@@ -99,6 +99,8 @@ export default function NewSite() {
   }
 
   const mustChoose = organizations.length > 1
+  // On this computer `.localhost` is added to every address, so the browser can open the site (D-038).
+  const local = onThisComputer()
 
   function changeAddress(index: number, value: string) {
     setAddresses((rows) => rows.map((row, at) => (at === index ? value : row)))
@@ -133,12 +135,13 @@ export default function NewSite() {
       return
     }
 
+    const saved = tidy.map((address) => savedAddress(address, local))
     inFlight.current = true
     setBusy(true)
     try {
       const created = await createSite({
         name: tidyName,
-        hostnames: tidy,
+        hostnames: saved,
         ...(mustChoose ? { organizationId } : {}),
       })
       try {
@@ -149,7 +152,7 @@ export default function NewSite() {
       }
       navigate('/pages', { state: { siteCreated: true } })
     } catch (error) {
-      const problems = describeSiteFailure(error, tidy)
+      const problems = describeSiteFailure(error, saved)
       setErrors(problems.fields)
       setFormError(problems.form)
       focusFirst(problems.fields)
@@ -192,6 +195,10 @@ export default function NewSite() {
         </div>
         {addresses.map((address, index) => {
           const error = errors[`hostnames.${index}`]
+          const typed = tidyAddress(address)
+          const willSave = savedAddress(typed, local)
+          const changes = willSave !== typed
+          const described = [changes ? `address-${index}-saved` : null, 'address-hint']
           return (
             <div className="field" key={index}>
               <label htmlFor={`address-${index}`}>
@@ -206,7 +213,9 @@ export default function NewSite() {
                   value={address}
                   onChange={(event) => changeAddress(index, event.target.value)}
                   aria-invalid={error !== undefined}
-                  aria-describedby={error ? `address-${index}-error` : 'address-hint'}
+                  aria-describedby={
+                    error ? `address-${index}-error` : described.filter(Boolean).join(' ')
+                  }
                 />
                 {index > 0 && (
                   <button
@@ -224,14 +233,19 @@ export default function NewSite() {
                   {error}
                 </p>
               )}
+              {changes && (
+                <p id={`address-${index}-saved`} className="hint">
+                  Will be saved as <code>{willSave}</code>.
+                </p>
+              )}
               {index === 0 && (
                 <p id="address-hint" className="hint">
-                  {onThisComputer() ? (
+                  {local ? (
                     <>
-                      What people type to visit the site. On this computer, use an address ending in{' '}
-                      <code>.localhost</code>, like <code>cafe.localhost</code>: the browser opens
-                      those here. A real domain such as <code>cafe.example.com</code> works only
-                      once it points at the live server. The first address is the main one.
+                      What people type to visit the site. On this computer <code>.localhost</code>{' '}
+                      is added for you (<code>cafe</code> is saved as <code>cafe.localhost</code>),
+                      so the browser opens the site here; on the live server an address is kept as
+                      typed. The first address is the main one.
                     </>
                   ) : (
                     <>
