@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   SESSION_KEY,
   fakeContent,
+  fakePage,
   fulfill,
   inDays,
   profileBody,
@@ -36,7 +37,8 @@ for (const width of [375, 768, 1280]) {
     })
 
     test('[UC-AS-13] the signed-in frame looks as approved', async ({ page }) => {
-      await fakeContent(page, [])
+      // A site as every site starts (D-037), with its front page: the Dashboard has nothing to warn about.
+      await fakeContent(page, [fakePage(1, { title: 'Home', slug: 'home', status: 'published' })])
       await page.route('**/auth/me', (route) => fulfill(route, 200, profileBody()))
       await seedStorage(page, {
         [SESSION_KEY]: JSON.stringify({ accessToken: 'saved-token', expiresAt: inDays(1) }),

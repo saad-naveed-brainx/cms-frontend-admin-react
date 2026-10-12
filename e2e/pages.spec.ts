@@ -12,8 +12,11 @@ const EVERYTHING = ['content.create', 'content.edit_any', 'content.edit_own']
 const SOMEONE_ELSE = '0198f2a0-0000-7000-8000-0000000000ee'
 
 /** The list request: `GET /content`. */
-const readsTheList = (request: Request) =>
-  request.method() === 'GET' && new URL(request.url()).pathname === '/content'
+/** The page list's own request, not the front page check (`?path=/home`) the Dashboard and the list also make. */
+const readsTheList = (request: Request) => {
+  const url = new URL(request.url())
+  return request.method() === 'GET' && url.pathname === '/content' && !url.searchParams.has('path')
+}
 
 for (const [who, permissions, offered] of [
   ['someone who may create', EVERYTHING, true],

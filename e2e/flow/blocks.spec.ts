@@ -164,34 +164,40 @@ test('[UC-RS-23] a page that already holds rich text and an unknown block shows 
   expect((await api.getPage(made.id)).body.blocks).toHaveLength(3)
 })
 
-test('[UC-RS-24] the finish line through the screens: sign in, create a site, create a home page, add a block, publish, and the site serves it', async ({
+test('[UC-RS-24] the finish line through the screens: sign in, create a site (its front page answers at once), create a page, add a block, publish, and the site serves it', async ({
   page,
   request,
 }) => {
   const token = unique()
   const siteName = `Finish Cafe ${token}`
   const host = `finish-${token}.localhost`
-  const headline = `Welcome to ${siteName}`
+  const headline = `Visit ${siteName}`
 
   await signInThroughTheScreen(page, finisher.admin)
 
-  // A new site on its own address.
+  // A new site on its own address, born with its front page (D-037).
   await page.getByRole('banner').getByRole('link', { name: 'New site' }).click()
   await page.getByLabel('Name', { exact: true }).fill(siteName)
   await page.getByLabel('Web address', { exact: true }).fill(host)
   await page.getByRole('button', { name: 'Create site' }).click()
   await expect(page.getByText('Site created.')).toBeVisible()
-  await expect(page.getByText('No pages yet.')).toBeVisible()
+  await expect(page.getByRole('row', { name: /^Home/ })).toContainText('Home — Front page')
+  const front = await publicPage(request, host)
+  expect(front.status).toBe(200)
+  expect(front.body.page).toMatchObject({
+    title: 'Home',
+    blocks: [{ type: 'hero', headline: siteName }],
+  })
 
-  // Its home page.
-  await page.getByRole('link', { name: 'Create the first page' }).click()
-  await page.getByLabel('Title', { exact: true }).fill('Home')
-  await expect(page.getByLabel('Slug')).toHaveValue('home')
+  // A page of its own.
+  await page.getByRole('link', { name: 'Add New Page' }).click()
+  await page.getByLabel('Title', { exact: true }).fill('Visit us')
+  await expect(page.getByLabel('Slug')).toHaveValue('visit-us')
   await page.getByRole('button', { name: 'Create page' }).click()
   await expect(page.getByText('Page created.')).toBeVisible()
 
   // Not public until it is published.
-  expect((await publicPage(request, host)).status).toBe(404)
+  expect((await publicPage(request, host, '/visit-us')).status).toBe(404)
 
   // A block, saved, then published.
   await page.getByRole('button', { name: 'Add Hero' }).click()
@@ -206,12 +212,12 @@ test('[UC-RS-24] the finish line through the screens: sign in, create a site, cr
   await expect(page.getByText('Published.', { exact: true })).toBeVisible()
 
   // What the public site is told at that address: the headline and the site's name.
-  const live = await publicPage(request, host)
+  const live = await publicPage(request, host, '/visit-us')
   expect(live.status).toBe(200)
   expect(live.body.site.name).toBe(siteName)
   expect(live.body.page).toMatchObject({
-    title: 'Home',
-    path: '/home',
+    title: 'Visit us',
+    path: '/visit-us',
     blocks: [{ type: 'hero', headline, primaryAction: { label: 'Visit', href: '/visit' } }],
   })
 })

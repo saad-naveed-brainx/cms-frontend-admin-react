@@ -11,7 +11,8 @@ const EVERYTHING = ['content.create', 'content.edit_any', 'content.edit_own', 'c
 const post = { id: postType.id, slug: postType.slug, name: postType.name }
 
 const pages = [
-  fakePage(1, { title: 'Welcome to Orchard Bakery', slug: 'welcome', status: 'published' }),
+  // The site's front page (D-037), so the list shows its mark and no notice.
+  fakePage(1, { title: 'Welcome to Orchard Bakery', slug: 'home', status: 'published' }),
   fakePage(2, { title: 'About us', slug: 'about' }),
   fakePage(3, {
     title: 'Hello world',

@@ -83,6 +83,18 @@ export async function realApi(request: APIRequestContext, person: Person, siteNa
       const response = await request.post(`${flowApiUrl}/content/${id}/publish`, { headers })
       expect(response.status(), 'publishing').toBe(200)
     },
+    /** Takes a page back to a draft. */
+    async unpublish(id: string) {
+      const response = await request.post(`${flowApiUrl}/content/${id}/unpublish`, { headers })
+      expect(response.status(), 'unpublishing').toBe(200)
+    },
+    /** The site's front page (the page at /home), as the real API lists it. */
+    async frontPage() {
+      const response = await request.get(`${flowApiUrl}/content?path=%2Fhome`, { headers })
+      const list = (await response.json()) as { items: { id: string; status: string }[] }
+      expect(list.items, 'one page at /home').toHaveLength(1)
+      return list.items[0]
+    },
     /** The site's appearance as the real API keeps it (GOV-04). */
     async getAppearance() {
       const response = await request.get(`${flowApiUrl}/appearance`, { headers })

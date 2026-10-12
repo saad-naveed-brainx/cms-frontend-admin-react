@@ -79,7 +79,8 @@ test('[UC-CS-03] lists the real pages of a site, last changed first, with paging
   page,
   request,
 }) => {
-  // Seventeen pages and ten posts, made through the real API in this order: the last made is listed first.
+  // Seventeen pages and ten posts, made through the real API in this order after the Home page the site
+  // started with (D-037): the last made is listed first.
   const api = await realApi(request, solo.admin, solo.tenant.site)
   for (let n = 1; n <= 17; n += 1) {
     await api.createPage({ type: 'page', title: `Page ${n}`, slug: `page-${n}` })
@@ -93,23 +94,24 @@ test('[UC-CS-03] lists the real pages of a site, last changed first, with paging
   await page.goto('/pages')
   const items = page.locator('.list-table tbody tr')
 
-  await expect(page.getByText('Showing 1–25 of 27')).toBeVisible()
+  await expect(page.getByText('Showing 1–25 of 28')).toBeVisible()
   await expect(items).toHaveCount(25)
   await expect(items.first()).toContainText('Post 10')
   await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled()
 
   await page.getByRole('button', { name: 'Next' }).click()
   await expect(page).toHaveURL(/offset=25/)
-  await expect(page.getByText('Showing 26–27 of 27')).toBeVisible()
-  await expect(items).toHaveCount(2)
+  await expect(page.getByText('Showing 26–28 of 28')).toBeVisible()
+  await expect(items).toHaveCount(3)
   await expect(items.first()).toContainText('Page 2')
+  await expect(items.last()).toContainText('Home — Front page')
   await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
 
   // The address holds the place: a reload shows the same page of the list.
   await page.reload()
-  await expect(page.getByText('Showing 26–27 of 27')).toBeVisible()
+  await expect(page.getByText('Showing 26–28 of 28')).toBeVisible()
   await page.getByRole('button', { name: 'Previous' }).click()
-  await expect(page.getByText('Showing 1–25 of 27')).toBeVisible()
+  await expect(page.getByText('Showing 1–25 of 28')).toBeVisible()
 
   // A filter narrows the list, starts again from the first page, and is in the address too.
   await page.getByLabel('Type').selectOption('post')
@@ -204,13 +206,15 @@ test('[UC-CS-06] pages belong to one site: another site does not list them or op
   // Changing site on a page's screen leaves it for the list, which is the other site's own.
   await page.getByLabel('Site').selectOption(maple.siteId)
   await expect(page).toHaveURL(/\/pages$/)
-  await expect(page.getByText('No pages yet.')).toBeVisible()
+  await expect(page.getByRole('row', { name: /^Home/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: `Orchard only ${token}` })).toHaveCount(0)
 
   // The first site's page is not on this one, even by its address.
   await page.goto(`/pages/${made.id}`)
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible()
   await page.getByRole('link', { name: 'Back to pages' }).click()
-  await expect(page.getByText('No pages yet.')).toBeVisible()
+  await expect(page.getByRole('row', { name: /^Home/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: `Orchard only ${token}` })).toHaveCount(0)
 })
 
 test('[UC-RS-06] publishes and unpublishes a page through the screen, and the real API agrees', async ({

@@ -34,10 +34,9 @@ test('[UC-AP-07] changes the name, tagline, footer note, palette, brand and acce
   request,
 }) => {
   const api = await realApi(request, stylist.admin, SITE)
-  const home = await api.createPage({
-    type: 'page',
-    title: 'Home',
-    slug: 'home',
+  // The Home page the site started with (D-037), given a hero with a button; it is already published.
+  const home = await api.frontPage()
+  const saved = await api.patchPage(home.id, {
     blocks: [
       {
         type: 'hero',
@@ -46,8 +45,8 @@ test('[UC-AP-07] changes the name, tagline, footer note, palette, brand and acce
       },
     ],
   })
+  expect(saved.status).toBe(200)
   const about = await api.createPage({ type: 'page', title: 'About', slug: 'about' })
-  await api.publish(home.id)
   await api.publish(about.id)
 
   await signInThroughTheScreen(page, stylist.admin)

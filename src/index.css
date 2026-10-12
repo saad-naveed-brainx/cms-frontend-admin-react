@@ -24,6 +24,7 @@
   --wp-blue-dark: #135e96;
   --wp-on-blue: #ffffff;
   --wp-red: #d63638;
+  --wp-yellow: #dba617;
   --wp-green: #00a32a;
   --wp-shadow: rgb(0 0 0 / 4%);
   /* The search result preview (SEO box): a search engine's own link blue and grey text */
@@ -279,6 +280,28 @@ button.small {
   background: var(--wp-box);
   border-left: 4px solid var(--wp-green);
   box-shadow: 0 1px 1px var(--wp-shadow);
+}
+
+.notice.warning {
+  border-left-color: var(--wp-yellow);
+}
+
+.front-page-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+}
+
+.front-page-notice h2 {
+  margin: 0;
+  font-size: 1em;
+}
+
+.front-page-notice p {
+  margin: 0;
 }
 
 .problem {

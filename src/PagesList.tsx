@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
+import FrontPageNotice, { FRONT_PAGE_PATH } from './FrontPageNotice.tsx'
 import { STATUS_CHOICES, formatDate, pluralLabel, statusLabel } from './helpers.ts'
 import { fetchPages, fetchTypes } from './pages-api.ts'
-import type { PageList, PageType } from './pages-api.ts'
+import type { PageList, PageSummary, PageType } from './pages-api.ts'
 import { external, siteUrl } from './site-links.ts'
 import { useSignedIn } from './useSignedIn.ts'
 
 const PAGE_SIZE = 25
+
+/** What follows a row's title, as WordPress writes it: "Home — Draft, Front page". */
+function postStates(page: PageSummary): string[] {
+  return [
+    ...(page.status === 'published' ? [] : [statusLabel(page.status)]),
+    ...(page.path === FRONT_PAGE_PATH ? ['Front page'] : []),
+  ]
+}
 
 type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; list: PageList }
 
@@ -94,6 +103,11 @@ export default function PagesList() {
         <p role="status" className="notice">
           {notice}
         </p>
+      )}
+
+      {/* The front page is a Page: the notice belongs with them, not on a list of posts. */}
+      {(type === '' || type === 'page') && (
+        <FrontPageNotice onChange={() => setAttempt((count) => count + 1)} />
       )}
 
       <div className="tablenav">
@@ -217,8 +231,8 @@ export default function PagesList() {
                     <Link className="row-title" to={`/pages/${page.id}`}>
                       {page.title}
                     </Link>
-                    {page.status !== 'published' && (
-                      <span className="post-state"> — {statusLabel(page.status)}</span>
+                    {postStates(page).length > 0 && (
+                      <span className="post-state"> — {postStates(page).join(', ')}</span>
                     )}
                   </strong>
                   <div className="row-actions">
