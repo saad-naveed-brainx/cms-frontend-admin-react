@@ -24,3 +24,17 @@ export function previewUrl(host: string, path: string, token: string): string {
 
 /** What every link to the website carries: it opens in a new tab, and the website gets no hold on the admin. */
 export const external = { target: '_blank', rel: 'noopener noreferrer' } as const
+
+/**
+ * Whether the admin itself is open on this computer (`localhost`, `127.0.0.1`, `*.localhost`). Here a
+ * site is only reachable at an address ending in `.localhost`, which browsers send to this machine; a
+ * real domain works only once it points at the live server.
+ */
+export function onThisComputer(hostname: string = window.location.hostname): boolean {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    hostname.endsWith('.localhost')
+  )
+}

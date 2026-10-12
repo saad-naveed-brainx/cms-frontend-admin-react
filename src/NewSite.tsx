@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { describeSiteFailure, tidyAddress } from './helpers.ts'
 import { reloadProfile } from './session.ts'
+import { onThisComputer } from './site-links.ts'
 import { createSite, fetchOrganizations } from './sites-api.ts'
 import type { Organization } from './sites-api.ts'
 
@@ -225,8 +226,19 @@ export default function NewSite() {
               )}
               {index === 0 && (
                 <p id="address-hint" className="hint">
-                  What people type to visit the site, like <code>cafe.example.com</code>. The first
-                  address is the main one.
+                  {onThisComputer() ? (
+                    <>
+                      What people type to visit the site. On this computer, use an address ending in{' '}
+                      <code>.localhost</code>, like <code>cafe.localhost</code>: the browser opens
+                      those here. A real domain such as <code>cafe.example.com</code> works only
+                      once it points at the live server. The first address is the main one.
+                    </>
+                  ) : (
+                    <>
+                      What people type to visit the site, like <code>cafe.example.com</code>. The
+                      first address is the main one.
+                    </>
+                  )}
                 </p>
               )}
             </div>
