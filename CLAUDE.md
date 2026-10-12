@@ -75,6 +75,13 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new
   site and selects it, then the screen goes to `/pages` with a "Site created." notice. The notice rides in
   the history entry, so a reload of that page shows it again (as with "Page created.").
+- **The front page** (`FrontPageNotice.tsx`, `../docs/DECISIONS.md` D-037) is the page at `/home`, which every new site
+  starts with, published. The Dashboard and the Pages list (all content, or Pages) ask `GET /content?path=/home`; when
+  there is none, or it is not published, a notice says visitors see "Page not found" and offers **Create the front page**
+  (Home, a hero with the site's name, published, then its edit screen) or **Publish the front page** (with
+  `content.create`/`content.publish`; without them it asks for someone who can). A failed check shows nothing. List rows
+  at `/home` read "Home — Front page". Tests that answer page lists themselves must tell the list's request from this
+  check (`?path=`), or a 401 meant for the list lands on the Dashboard's check first.
 - **The block editor** (`BlocksEditor.tsx`, `block-schemas.ts`, `block-drafts.ts`) is on the edit screen: a form
   per block, beside the live preview. `block-schemas.ts` (the forms' fields) is written by hand: a block type or
   field changed in `web/src/blocks/types.ts` and `parse-blocks.ts` must be changed here too, then

@@ -14,6 +14,7 @@ import type { Page } from './pages-api.ts'
 import SeoBox from './SeoBox.tsx'
 import { seoChanges, seoDraftFrom, validateSeo } from './seo-fields.ts'
 import type { SeoDraft, SeoField } from './seo-fields.ts'
+import type { FrontPageMade } from './FrontPageNotice.tsx'
 import { external, previewUrl, siteUrl } from './site-links.ts'
 import { useSignedIn } from './useSignedIn.ts'
 
@@ -44,9 +45,13 @@ export default function EditPage() {
   const [seoErrors, setSeoErrors] = useState<Partial<Record<SeoField, string>>>({})
   const [titleError, setTitleError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(
-    (location.state as { created?: boolean } | null)?.created ? 'Page created.' : null,
-  )
+  const [notice, setNotice] = useState<string | null>(() => {
+    const state = location.state as { created?: boolean; frontPage?: FrontPageMade } | null
+    if (state?.frontPage === 'published') return 'Front page created and published.'
+    if (state?.frontPage === 'created')
+      return 'Front page created. Publish it to show it on your site.'
+    return state?.created ? 'Page created.' : null
+  })
   const [saving, setSaving] = useState(false)
   const [statusBusy, setStatusBusy] = useState(false)
   const [previewBusy, setPreviewBusy] = useState(false)

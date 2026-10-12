@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import type { Membership, User } from './api.ts'
+import FrontPageNotice from './FrontPageNotice.tsx'
 import { listPath } from './helpers.ts'
 import { external, siteUrl } from './site-links.ts'
 import { useSignedIn } from './useSignedIn.ts'
@@ -13,6 +14,7 @@ export default function Overview({ user, membership }: Props) {
   return (
     <main>
       <h1>Dashboard</h1>
+      <FrontPageNotice />
       <section className="welcome-panel" aria-labelledby="welcome-heading">
         <h2 id="welcome-heading">{membership.site.name}</h2>
         <p>

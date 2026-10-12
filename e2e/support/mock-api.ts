@@ -131,7 +131,7 @@ export type FakePage = {
   noIndex: boolean
 }
 
-const typeRef = (type: { id: string; slug: string; name: string }) => ({
+export const typeRef = (type: { id: string; slug: string; name: string }) => ({
   id: type.id,
   slug: type.slug,
   name: type.name,
@@ -198,10 +198,14 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
       if (url.pathname === '/content' && method === 'GET') {
         const type = url.searchParams.get('type')
         const status = url.searchParams.get('status')
+        const path = url.searchParams.get('path')
         const limit = Number(url.searchParams.get('limit') ?? 25)
         const offset = Number(url.searchParams.get('offset') ?? 0)
         const matching = state.pages.filter(
-          (item) => (!type || item.type.slug === type) && (!status || item.status === status),
+          (item) =>
+            (!type || item.type.slug === type) &&
+            (!status || item.status === status) &&
+            (!path || item.path === path),
         )
         return fulfill(route, 200, {
           items: matching.slice(offset, offset + limit).map(summaryOf),
@@ -211,7 +215,12 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
         })
       }
       if (url.pathname === '/content' && method === 'POST') {
-        const body = request.postDataJSON() as { type: string; title: string; slug: string }
+        const body = request.postDataJSON() as {
+          type: string
+          title: string
+          slug: string
+          blocks?: unknown[]
+        }
         const type = [pageType, postType].find((item) => item.slug === body.type)
         if (!type) return fulfill(route, 400, { message: 'Invalid request', errors: ['type: unknown'] })
         const created = fakePage(state.pages.length + 100, {
@@ -219,6 +228,7 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
           title: body.title,
           slug: body.slug,
           path: `${type.urlPrefix ?? ''}/${body.slug}`,
+          blocks: body.blocks ?? [],
         })
         state.pages.unshift(created)
         return fulfill(route, 201, created)

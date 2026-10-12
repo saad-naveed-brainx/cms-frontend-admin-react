@@ -54,5 +54,14 @@ export const stylist = {
   tenant: { organization: 'Style House Ltd', site: 'Style House', host: 'style.test' },
 }
 
+/**
+ * A sixth person, whose site's front page (the Home page every site starts with, D-037) a test takes
+ * down and puts back through the screen, so no other test uses her.
+ */
+export const greeter = {
+  admin: { email: 'fern@front.test', name: 'Fern Front', password: 'front-flow-password' },
+  tenant: { organization: 'Front Room Ltd', site: 'Front Room', host: 'front.test' },
+}
+
 /** Everyone with a site of their own, each made by the real seed command. */
-export const people = [solo, maker, finisher, stylist]
+export const people = [solo, maker, finisher, stylist, greeter]

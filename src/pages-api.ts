@@ -44,6 +44,8 @@ export type PageList = {
 export type PageQuery = {
   type?: string
   status?: string
+  /** One address exactly (`/home`). */
+  path?: string
   limit: number
   offset: number
 }
@@ -106,6 +108,7 @@ export async function fetchPages(query: PageQuery): Promise<PageList> {
   })
   if (query.type) params.set('type', query.type)
   if (query.status) params.set('status', query.status)
+  if (query.path) params.set('path', query.path)
 
   const answer = await authed(`/content?${params}`)
   if (
@@ -136,6 +139,7 @@ export async function createPage(body: {
   type: string
   title: string
   slug: string
+  blocks?: unknown[]
 }): Promise<Page> {
   const answer = await authed('/content', { method: 'POST', body })
   if (!isPage(answer)) throw unusable()

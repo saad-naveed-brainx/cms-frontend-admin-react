@@ -61,7 +61,10 @@ test.describe('on a phone', () => {
   test.use({ viewport: { width: 375, height: 800 } })
 
   test('[UC-BE-07] the open menu looks as approved', async ({ page }) => {
-    await fakeContent(page, [fakePage(1, { title: 'Welcome' })])
+    await fakeContent(page, [
+      fakePage(1, { title: 'Welcome' }),
+      fakePage(2, { title: 'Home', slug: 'home', status: 'published' }),
+    ])
     await signedInAs(page, EVERYTHING)
     await page.goto('/pages?type=page')
     await expect(page.getByRole('link', { name: 'Welcome' })).toBeVisible()

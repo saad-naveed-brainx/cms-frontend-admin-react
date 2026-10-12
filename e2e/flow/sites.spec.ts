@@ -13,7 +13,7 @@ import { realApi, signInThroughTheScreen, unique } from './support.ts'
 const newSiteLink = (page: import('@playwright/test').Page) =>
   page.getByRole('banner').getByRole('link', { name: 'New site' })
 
-test('[UC-RS-12] creates a site through the screen: it is selected, empty, listed by the real API and answers on its address', async ({
+test('[UC-RS-12] creates a site through the screen: it is selected, holds only its Home page, is listed by the real API and answers on its address', async ({
   page,
   request,
 }) => {
@@ -34,7 +34,9 @@ test('[UC-RS-12] creates a site through the screen: it is selected, empty, liste
 
   await expect(page).toHaveURL(/\/pages$/)
   await expect(page.getByText('Site created.')).toBeVisible()
-  await expect(page.getByText('No pages yet.')).toBeVisible()
+  // Its only page is the front page every site starts with (D-037).
+  await expect(page.locator('.list-table tbody tr')).toHaveCount(1)
+  await expect(page.getByRole('row', { name: /^Home/ })).toContainText('Home — Front page')
 
   // The real API lists the site for her, with her as its administrator, and the Site control shows it selected.
   const api = await realApi(request, maker.admin, siteName)
