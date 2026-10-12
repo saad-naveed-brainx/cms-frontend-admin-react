@@ -14,6 +14,8 @@ export type Membership = {
   site: { id: string; name: string; primaryHost: string | null; theme?: unknown }
   role: { id: string; name: string }
   permissions: string[]
+  /** Whether the person owns the site's organisation, so may delete the site (D-039). Absent means no. */
+  ownsOrganization?: boolean
 }
 
 export type Profile = { user: User; memberships: Membership[] }
@@ -49,7 +51,7 @@ export class NetworkError extends Error {
 const baseUrl = String(import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PATCH'
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   body?: unknown
   /** Sent as `Authorization: Bearer`. */
   token?: string | null
@@ -78,6 +80,8 @@ export async function request(
     throw new NetworkError()
   }
   if (!response.ok) throw new ApiError(response.status, await readBody(response))
+  // "Done, nothing to send back" (a delete).
+  if (response.status === 204) return null
 
   try {
     return await response.json()

@@ -79,6 +79,11 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `.localhost` one (`savedAddress()` in `helpers.ts`: `xyz` → `xyz.localhost`; `../docs/DECISIONS.md` D-038), shown as
   "Will be saved as …" under the box; on a live server addresses are sent as typed. Tests that type an address expect
   `.localhost` on it.
+- **Deleting a site** (`Sites.tsx`, `deleteSite` in `sites-api.ts`, `../docs/DECISIONS.md` D-039): a **Delete** button on the
+  Sites screen only where the membership says `ownsOrganization`; it opens a panel ("Delete <name>?") where the site's name
+  must be typed exactly before **Delete this site** works (Enter deletes, Escape cancels). Then `reloadProfile()`, so the
+  list, the Site control and the current site follow, and "<name> was deleted." A 403, a failure and a 404 are said in the
+  panel. `request()` answers `null` for a 204.
 - **The front page** (`FrontPageNotice.tsx`, `../docs/DECISIONS.md` D-037) is the page at `/home`, which every new site
   starts with, published. The Dashboard and the Pages list (all content, or Pages) ask `GET /content?path=/home`; when
   there is none, or it is not published, a notice says visitors see "Page not found" and offers **Create the front page**
