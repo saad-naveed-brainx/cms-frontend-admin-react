@@ -32,7 +32,11 @@ test('[UC-LP-02] the preview draws the blocks as the forms change, and leaves ou
 
   // A new call to action is left out until its required fields are filled, as the site would.
   await page.getByRole('button', { name: 'Add Call to action' }).click()
-  await expect(page.getByText('1 block is not shown')).toBeVisible()
+  await expect(
+    page.getByText(
+      '1 block is not shown: the site leaves out a block until its required fields are filled.',
+    ),
+  ).toBeVisible()
   const cta = page.getByRole('region', { name: '2. Call to action' })
   await cta.getByLabel('Heading').fill('Visit us')
   await cta.getByLabel('Label').fill('Find the shop')
