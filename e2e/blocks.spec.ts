@@ -179,7 +179,7 @@ test('[UC-RS-22] moves a block, edits a field, adds and removes an item and dele
   ])
 })
 
-test('[UC-RS-23] a block the editor cannot edit is shown, not offered, and kept exactly when the page is saved', async ({
+test('[UC-RS-23] a block the editor cannot edit is shown, not offered, and kept exactly when the page is saved; a stored text block opens in the Text editor and is kept as it was', async ({
   page,
 }) => {
   const rich = { type: 'richText', heading: 'Old', html: '<p>Hello</p>' }
@@ -189,19 +189,19 @@ test('[UC-RS-23] a block the editor cannot edit is shown, not offered, and kept 
   await signedInAs(page, EVERYTHING)
   await page.goto(`/pages/${home.id}`)
 
-  // Shown by name, with nothing to edit, and not among the blocks that can be added.
+  // The unknown one is shown by name, with nothing to edit, and not among the blocks that can be added.
   await expect(page.getByRole('heading', { level: 3 })).toHaveText([
     '1. Hero',
-    '2. Rich text',
+    '2. Text',
     '3. Unknown block',
   ])
-  for (const title of ['2. Rich text', '3. Unknown block']) {
-    await expect(card(page, title).getByText('This block cannot be edited here.')).toBeVisible()
-    await expect(card(page, title).getByRole('textbox')).toHaveCount(0)
-  }
-  await expect(page.getByRole('button', { name: /^Add Rich text/ })).toHaveCount(0)
+  const unknownCard = card(page, '3. Unknown block')
+  await expect(unknownCard.getByText('This block cannot be edited here.')).toBeVisible()
+  await expect(unknownCard.getByRole('textbox')).toHaveCount(0)
+  await expect(card(page, '2. Text').getByRole('textbox', { name: 'Text' })).toHaveText('Hello')
   await expect(page.getByRole('group', { name: 'Add a block' }).getByRole('button')).toHaveText([
     'Add Hero',
+    'Add Text',
     'Add Image and text',
     'Add Feature grid',
     'Add Testimonial',
@@ -238,14 +238,14 @@ test('[UC-RS-23] a refusal from the API is shown plainly, and what was typed sta
     if (request.method() !== 'PATCH') return false
     void fulfill(route, 400, {
       message: 'Invalid request',
-      errors: ['blocks.0: a richText block is not accepted yet'],
+      errors: ['blocks.0: a richText block needs its text as html'],
     })
     return true
   }
 
   await card(page, '1. Hero').getByLabel('Headline').fill('Changed')
   await save(page).click()
-  await expect(page.getByRole('alert')).toContainText('a richText block is not accepted yet')
+  await expect(page.getByRole('alert')).toContainText('a richText block needs its text as html')
   await expect(card(page, '1. Hero').getByLabel('Headline')).toHaveValue('Changed')
   await expect(save(page)).toBeEnabled()
 })

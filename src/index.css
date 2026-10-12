@@ -143,7 +143,8 @@ main > form.form {
   gap: 6px;
 }
 
-label {
+label,
+.field-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--wp-heading);
@@ -1274,4 +1275,104 @@ fieldset.group legend {
   .action-col {
     text-align: left;
   }
+}
+
+/* A text block's editor (RichTextField): a toolbar over a box that looks like a textarea */
+.rich-text {
+  border: 1px solid var(--wp-input-border);
+  border-radius: 4px;
+  background: var(--wp-box);
+}
+
+.rich-text[data-invalid='true'] {
+  border-color: var(--wp-red);
+}
+
+.rich-text:focus-within {
+  border-color: var(--wp-blue);
+  box-shadow: 0 0 0 1px var(--wp-blue);
+}
+
+.rich-text-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
+  border-bottom: 1px solid var(--wp-border-light);
+  background: var(--wp-stripe);
+  border-radius: 4px 4px 0 0;
+}
+
+.rich-text-tools .tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--wp-text);
+  cursor: pointer;
+}
+
+.rich-text-tools .tool:hover {
+  border-color: var(--wp-border);
+  background: var(--wp-box);
+}
+
+.rich-text-tools .tool[aria-pressed='true'] {
+  border-color: var(--wp-bar);
+  background: var(--wp-bar);
+  color: var(--wp-menu-text);
+}
+
+.rich-text-area {
+  min-height: 140px;
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--wp-text);
+  outline: none;
+}
+
+.rich-text-area > * + * {
+  margin-top: 0.75em;
+}
+
+.rich-text-area h2 {
+  font-size: 20px;
+}
+
+.rich-text-area h3 {
+  font-size: 16px;
+}
+
+.rich-text-area ul,
+.rich-text-area ol {
+  padding-left: 1.5em;
+}
+
+.rich-text-area ul {
+  list-style: disc;
+}
+
+.rich-text-area ol {
+  list-style: decimal;
+}
+
+.rich-text-area blockquote {
+  border-left: 3px solid var(--wp-border);
+  padding-left: 12px;
+  color: var(--wp-muted);
+}
+
+.rich-text-area a {
+  color: var(--wp-blue);
+  text-decoration: underline;
+}
+
+.rich-text + .field-error {
+  margin-top: 0;
 }

@@ -4,6 +4,7 @@ import { BLOCK_SCHEMAS, schemaFor } from './block-schemas.ts'
 import type { BlockSchema, Field } from './block-schemas.ts'
 import { blockName, fieldId, newKey } from './block-drafts.ts'
 import type { Draft } from './block-drafts.ts'
+import RichTextField from './RichTextField.tsx'
 
 const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 
@@ -46,6 +47,36 @@ function FieldView({ field, value, path, errors, mustFill, onChange }: FieldProp
           ) : (
             <textarea {...shared} rows={3} onChange={(event) => onChange(event.target.value)} />
           )}
+          {error && (
+            <p id={errorId} className="field-error">
+              {error}
+            </p>
+          )}
+          {field.hint && (
+            <p id={hintId} className="hint">
+              {field.hint}
+            </p>
+          )}
+        </div>
+      )
+    }
+
+    case 'richtext': {
+      const labelId = `${id}-label`
+      return (
+        <div className="field">
+          <span className="field-label" id={labelId}>
+            {field.label}
+            {star}
+          </span>
+          <RichTextField
+            id={id}
+            labelId={labelId}
+            value={typeof value === 'string' ? value : ''}
+            invalid={error !== undefined}
+            describedBy={error ? errorId : field.hint ? hintId : undefined}
+            onChange={onChange}
+          />
           {error && (
             <p id={errorId} className="field-error">
               {error}
@@ -189,7 +220,7 @@ type Props = {
 /**
  * The page's blocks, one card each, in the order they appear on the site: fill the fields, move a
  * block up or down, delete it, or add one of the offered types. A block of a type the editor does
- * not know (such as one holding HTML) is shown and kept as it is. Nothing is saved from here: the
+ * not know is shown and kept as it is. Nothing is saved from here: the
  * page's Save button sends the lot.
  */
 export default function BlocksEditor({ drafts, errors, onChange }: Props) {

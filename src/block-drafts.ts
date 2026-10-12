@@ -22,7 +22,7 @@ export function draftsFrom(blocks: unknown[]): Draft[] {
 
 /** What a block is called on screen: the editor's own name, or a plain one for a block it cannot edit. */
 export function blockName(block: Block): string {
-  return schemaFor(block.type)?.name ?? (block.type === 'richText' ? 'Rich text' : 'Unknown block')
+  return schemaFor(block.type)?.name ?? 'Unknown block'
 }
 
 /** The id of the field at this path (the keys `validateBlocks` gives). */
