@@ -27,6 +27,7 @@ test('[UC-BE-06] the menu has an entry per real content type, each listing its o
     'Dashboard',
     'Pages',
     'Posts',
+    'Media',
     'Appearance',
     'Sites',
   ])

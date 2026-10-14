@@ -7,6 +7,7 @@ const CONTENT_EDIT_ANY = 'content.edit_any'
 const CONTENT_EDIT_OWN = 'content.edit_own'
 const CONTENT_PUBLISH = 'content.publish'
 const SETTINGS_MANAGE = 'settings.manage'
+const MEDIA_UPLOAD = 'media.upload'
 
 /** Who is signed in and what their role on the current site lets the screens offer. */
 export function useSignedIn() {
@@ -22,6 +23,7 @@ export function useSignedIn() {
       canCreate: false,
       canPublish: false,
       canManageSettings: false,
+      canUpload: false,
       mayEdit: (_createdBy: string | null) => false,
     }
   }
@@ -42,6 +44,8 @@ export function useSignedIn() {
     canPublish: permissions.includes(CONTENT_PUBLISH),
     /** The site's name, header, footer and look (Appearance, GOV-04). */
     canManageSettings: permissions.includes(SETTINGS_MANAGE),
+    /** Adding pictures to the media library (MED-01). */
+    canUpload: permissions.includes(MEDIA_UPLOAD),
     /** Any page with `content.edit_any`; only the person's own pages with `content.edit_own`. */
     mayEdit: (createdBy: string | null) =>
       permissions.includes(CONTENT_EDIT_ANY) ||

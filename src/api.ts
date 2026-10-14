@@ -64,8 +64,10 @@ export async function request(
   path: string,
   { method = 'GET', body, token, siteId }: RequestOptions = {},
 ): Promise<unknown> {
+  // A file upload goes as the form it is; the browser writes its own Content-Type with the boundary.
+  const isForm = body instanceof FormData
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
   if (siteId) headers['X-Site-Id'] = siteId
 
@@ -74,7 +76,7 @@ export async function request(
     response = await fetch(`${baseUrl}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     })
   } catch {
     throw new NetworkError()

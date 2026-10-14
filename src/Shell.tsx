@@ -4,6 +4,7 @@ import {
   FileText,
   Globe,
   House,
+  Image,
   LayoutDashboard,
   Menu,
   Palette,
@@ -17,6 +18,7 @@ import Appearance from './Appearance.tsx'
 import EditPage from './EditPage.tsx'
 import { listPath, pluralLabel } from './helpers.ts'
 import { confirmLeaving } from './leave-guard.ts'
+import Media from './Media.tsx'
 import NewPage from './NewPage.tsx'
 import NewSite from './NewSite.tsx'
 import NotFound from './NotFound.tsx'
@@ -34,7 +36,7 @@ type Props = { user: User; memberships: Membership[]; siteId: string | null }
 /**
  * The signed-in frame, laid out as WordPress lays out its admin: a dark bar across the top (the site
  * you are working on, New site, who you are) and a dark menu down the left. The menu offers only what
- * works: the Dashboard, one entry per content type of the site, and Sites.
+ * works: the Dashboard, one entry per content type of the site, Media, Appearance and Sites.
  */
 export default function Shell({ user, memberships, siteId }: Props) {
   const location = useLocation()
@@ -129,6 +131,7 @@ export default function Shell({ user, memberships, siteId }: Props) {
               <Route path="/pages" element={<PagesList key={current.site.id} />} />
               <Route path="/pages/new" element={<NewPage key={current.site.id} />} />
               <Route path="/pages/:id" element={<EditPage key={current.site.id} />} />
+              <Route path="/media" element={<Media key={current.site.id} />} />
               <Route path="/appearance" element={<Appearance key={current.site.id} />} />
             </>
           )}
@@ -207,6 +210,8 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
         ],
       })
     }
+    // Every member may look at the pictures; adding them is the screen's own question (MED-01).
+    entries.push({ label: 'Media', to: '/media', icon: Image, current: path === '/media', sub: [] })
     // As WordPress's Appearance: only for those who may change it (the API decides, invariant 3).
     if (canManageSettings) {
       entries.push({
