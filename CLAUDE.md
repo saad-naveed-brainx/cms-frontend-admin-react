@@ -51,7 +51,7 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
   route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
-  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/appearance`, `/sites` and `/sites/new`). The page list keeps its filters and
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/sites` and `/sites/new`). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
 - **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
   Site switcher, New site, "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
@@ -111,6 +111,13 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `authed()` with a `FormData` body (`request()` then sends no JSON `Content-Type`). Pictures load from the API's address
   (`url`, `thumbUrl`), never from the admin's. The stand-in is `fakeMedia` (every `/uploads/…` answers `SAMPLE_PNG`); the
   flow API stores uploads in a throwaway folder (`MEDIA_DIR` in `e2e/flow/start-api.mjs`).
+- **Content types** (`/types`, `ContentTypes.tsx`, `../docs/DECISIONS.md` D-043): "Content types" in the menu only with
+  `content_types.manage`; the site's types (plural name, where their items live, built in or made here) and **Add New Type**:
+  a name and an address that follows the name (`Recipe` → `recipes`, `typeAddress()` in `helpers.ts`) until it is typed
+  over. `POST /content-types` answers the new type; then `announceTypesChanged()` (a `cms:types-changed` event on `window`)
+  makes the menu ask for the types again, so its entry (All …, Add New) is there at once. A taken name or address (409)
+  is said as the API says it. Nothing about a type can be changed afterwards. Flow person Tia (`typer`) makes one, since it
+  changes her site's menu.
 - **Choosing a library picture** (`MediaPicker.tsx`, MED-03): a native modal `<dialog>` ("Choose a picture", "Choose a logo")
   with the library's grid; clicking a picture chooses it, "Upload a new picture" (with `media.upload`) adds one and chooses
   it, Escape or Cancel closes it. Render it only while choosing (`{open && <MediaPicker … />}`): it opens on mount and

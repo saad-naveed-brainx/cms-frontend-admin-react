@@ -72,5 +72,14 @@ export const remover = {
   tenant: { organization: 'Remove Co', site: 'Removal Studio', host: 'removal.test' },
 }
 
+/**
+ * An eighth person, who makes a content type on their site (D-043), which adds an entry to its menu,
+ * so no other test uses her.
+ */
+export const typer = {
+  admin: { email: 'tia@types.test', name: 'Tia Typer', password: 'types-flow-password' },
+  tenant: { organization: 'Type Works', site: 'Type Studio', host: 'types.test' },
+}
+
 /** Everyone with a site of their own, each made by the real seed command. */
-export const people = [solo, maker, finisher, stylist, greeter, remover]
+export const people = [solo, maker, finisher, stylist, greeter, remover, typer]

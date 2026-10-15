@@ -8,6 +8,7 @@ const CONTENT_EDIT_OWN = 'content.edit_own'
 const CONTENT_PUBLISH = 'content.publish'
 const SETTINGS_MANAGE = 'settings.manage'
 const MEDIA_UPLOAD = 'media.upload'
+const CONTENT_TYPES_MANAGE = 'content_types.manage'
 
 /** Who is signed in and what their role on the current site lets the screens offer. */
 export function useSignedIn() {
@@ -24,6 +25,7 @@ export function useSignedIn() {
       canPublish: false,
       canManageSettings: false,
       canUpload: false,
+      canManageTypes: false,
       mayEdit: (_createdBy: string | null) => false,
     }
   }
@@ -46,6 +48,8 @@ export function useSignedIn() {
     canManageSettings: permissions.includes(SETTINGS_MANAGE),
     /** Adding pictures to the media library (MED-01). */
     canUpload: permissions.includes(MEDIA_UPLOAD),
+    /** Making content types (D-043). */
+    canManageTypes: permissions.includes(CONTENT_TYPES_MANAGE),
     /** Any page with `content.edit_any`; only the person's own pages with `content.edit_own`. */
     mayEdit: (createdBy: string | null) =>
       permissions.includes(CONTENT_EDIT_ANY) ||

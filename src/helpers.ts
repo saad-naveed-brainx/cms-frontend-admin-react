@@ -147,3 +147,18 @@ export function describeSiteFailure(error: unknown, addresses: string[]): FormPr
     ...addresses.map((_, index) => `hostnames.${index}`),
   ])
 }
+
+/**
+ * A content type's address as the API takes it (D-043), from whatever was typed: lower case, one word
+ * or hyphenated words, no slashes ("Team Members!" is `team-members`). The screen shows it with its `/`.
+ */
+export function typeAddress(typed: string): string {
+  return typed
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 59)
+    .replace(/-+$/, '')
+}

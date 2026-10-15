@@ -11,6 +11,8 @@ export type PageType = {
   slug: string
   name: string
   urlPrefix: string | null
+  /** Page and Post, which every site has; absent counts as made here. */
+  isBuiltin?: boolean
 }
 
 export type PageSummary = {
@@ -99,6 +101,20 @@ export async function fetchTypes(): Promise<PageType[]> {
     throw unusable()
   }
   return answer.items
+}
+
+/** Makes a content type (D-043): a name ("Recipe") and the address its items live under ("/recipes"). */
+export async function createType(body: { name: string; urlPrefix: string }): Promise<PageType> {
+  const answer = await authed('/content-types', { method: 'POST', body })
+  if (!isPageType(answer)) throw unusable()
+  return answer
+}
+
+/** Said on `window` when a content type was made, so the menu asks for the types again. */
+export const TYPES_CHANGED = 'cms:types-changed'
+
+export function announceTypesChanged(): void {
+  window.dispatchEvent(new Event(TYPES_CHANGED))
 }
 
 export async function fetchPages(query: PageQuery): Promise<PageList> {

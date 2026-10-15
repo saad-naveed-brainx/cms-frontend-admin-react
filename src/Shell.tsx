@@ -10,11 +10,13 @@ import {
   Palette,
   Pin,
   Plus,
+  Shapes,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router'
 import type { Membership, User } from './api.ts'
 import Appearance from './Appearance.tsx'
+import ContentTypes from './ContentTypes.tsx'
 import EditPage from './EditPage.tsx'
 import { listPath, pluralLabel } from './helpers.ts'
 import { confirmLeaving } from './leave-guard.ts'
@@ -23,7 +25,7 @@ import NewPage from './NewPage.tsx'
 import NewSite from './NewSite.tsx'
 import NotFound from './NotFound.tsx'
 import Overview from './Overview.tsx'
-import { fetchTypes } from './pages-api.ts'
+import { TYPES_CHANGED, fetchTypes } from './pages-api.ts'
 import type { PageType } from './pages-api.ts'
 import PagesList from './PagesList.tsx'
 import { selectSite, signOut } from './session.ts'
@@ -36,7 +38,7 @@ type Props = { user: User; memberships: Membership[]; siteId: string | null }
 /**
  * The signed-in frame, laid out as WordPress lays out its admin: a dark bar across the top (the site
  * you are working on, New site, who you are) and a dark menu down the left. The menu offers only what
- * works: the Dashboard, one entry per content type of the site, Media, Appearance and Sites.
+ * works: the Dashboard, one entry per content type of the site, Media, Content types, Appearance and Sites.
  */
 export default function Shell({ user, memberships, siteId }: Props) {
   const location = useLocation()
@@ -132,6 +134,7 @@ export default function Shell({ user, memberships, siteId }: Props) {
               <Route path="/pages/new" element={<NewPage key={current.site.id} />} />
               <Route path="/pages/:id" element={<EditPage key={current.site.id} />} />
               <Route path="/media" element={<Media key={current.site.id} />} />
+              <Route path="/types" element={<ContentTypes key={current.site.id} />} />
               <Route path="/appearance" element={<Appearance key={current.site.id} />} />
             </>
           )}
@@ -153,22 +156,27 @@ type Entry = {
 /** The left menu. Keyed by site by its parent, so another site's content types are loaded afresh. */
 function AdminMenu({ hasSite }: { hasSite: boolean }) {
   const location = useLocation()
-  const { canCreate, canManageSettings } = useSignedIn()
+  const { canCreate, canManageSettings, canManageTypes } = useSignedIn()
   // null: the types could not be loaded, so one entry lists every type instead.
   const [types, setTypes] = useState<PageType[] | null | undefined>(undefined)
 
   useEffect(() => {
     if (!hasSite) return
     let cancelled = false
-    fetchTypes()
-      .then((found) => {
-        if (!cancelled) setTypes(found)
-      })
-      .catch(() => {
-        if (!cancelled) setTypes(null)
-      })
+    const load = () =>
+      fetchTypes()
+        .then((found) => {
+          if (!cancelled) setTypes(found)
+        })
+        .catch(() => {
+          if (!cancelled) setTypes(null)
+        })
+    void load()
+    // A type made on the Content types screen gets its entry at once (D-043).
+    window.addEventListener(TYPES_CHANGED, load)
     return () => {
       cancelled = true
+      window.removeEventListener(TYPES_CHANGED, load)
     }
   }, [hasSite])
 
@@ -212,6 +220,16 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
     }
     // Every member may look at the pictures; adding them is the screen's own question (MED-01).
     entries.push({ label: 'Media', to: '/media', icon: Image, current: path === '/media', sub: [] })
+    // Making kinds of content (D-043): only for those who may (the API decides, invariant 3).
+    if (canManageTypes) {
+      entries.push({
+        label: 'Content types',
+        to: '/types',
+        icon: Shapes,
+        current: path === '/types',
+        sub: [],
+      })
+    }
     // As WordPress's Appearance: only for those who may change it (the API decides, invariant 3).
     if (canManageSettings) {
       entries.push({
