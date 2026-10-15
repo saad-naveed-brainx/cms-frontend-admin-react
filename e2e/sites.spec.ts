@@ -346,3 +346,64 @@ test('[UC-LA-02] on this computer .localhost is added to every address, shown be
     '',
   ])
 })
+
+test('[UC-DP-01] on the live admin a one-word address is saved under the platform domain; a full address is kept as typed', async ({
+  page,
+}) => {
+  const session = await signedInAs(page, EVERYTHING)
+  await fakeSites(page, session, [orchardHoldings])
+  await fakeContent(page, [])
+  await page.goto('/sites/new')
+  await expect(nameField(page)).toBeVisible()
+
+  // The rule, on a live admin with VITE_SITE_DOMAIN set, with none, and on this computer.
+  const saved = await page.evaluate(
+    async ([helpers, links]) => {
+      const { savedAddress } = (await import(helpers)) as {
+        savedAddress: (tidied: string, local: boolean, domain?: string) => string
+      }
+      const { domainSetting } = (await import(links)) as {
+        domainSetting: (value: unknown) => string
+      }
+      const typed = ['bistro', 'Bistro:3000', 'cafe.example.com', 'cafe.', '']
+      const domain = 'nodepress.example.test'
+      return {
+        live: typed.map((address) => savedAddress(address, false, domain)),
+        noDomain: typed.map((address) => savedAddress(address, false, '')),
+        here: typed.map((address) => savedAddress(address, true, domain)),
+        settings: [
+          ' .NodePress.Example.TEST ',
+          'nodepress.example.test',
+          'not a domain',
+          'https://nodepress.example.test',
+          '',
+          undefined,
+        ].map(domainSetting),
+      }
+    },
+    ['/src/helpers.ts', '/src/site-links.ts'],
+  )
+  expect(saved.live).toEqual([
+    'bistro.nodepress.example.test',
+    'Bistro.nodepress.example.test',
+    'cafe.example.com',
+    'cafe.',
+    '',
+  ])
+  expect(saved.noDomain).toEqual(['bistro', 'Bistro:3000', 'cafe.example.com', 'cafe.', ''])
+  expect(saved.here).toEqual([
+    'bistro.localhost',
+    'Bistro.localhost',
+    'cafe.example.com.localhost',
+    'cafe.localhost',
+    '',
+  ])
+  expect(saved.settings).toEqual([
+    'nodepress.example.test',
+    'nodepress.example.test',
+    '',
+    '',
+    '',
+    '',
+  ])
+})
