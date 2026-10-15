@@ -1562,3 +1562,24 @@ fieldset.group legend {
   border: 1px solid var(--wp-border-light);
   background: var(--wp-box);
 }
+
+/* Add New Type (ContentTypes.tsx): the address box with its "/" in front */
+.add-type {
+  margin-top: 20px;
+  max-width: 640px;
+}
+
+.address-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.address-input span {
+  color: var(--wp-muted);
+  font-family: ui-monospace, monospace;
+}
+
+.address-input input {
+  flex: 1;
+}

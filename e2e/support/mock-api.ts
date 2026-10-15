@@ -110,6 +110,9 @@ export const postType = {
   isBuiltin: true,
 }
 
+/** A content type as `GET /content-types` lists it (api/src/content/content.service.ts). */
+export type FakeType = Omit<typeof pageType, 'urlPrefix'> & { urlPrefix: string | null }
+
 export type FakePage = {
   id: string
   type: { id: string; slug: string; name: string }
@@ -181,6 +184,8 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
     calls: [] as string[],
     /** The body of every PATCH (a save), in order. */
     saved: [] as Record<string, unknown>[],
+    /** The site's content types; `POST /content-types` adds one (D-043). */
+    types: [pageType, postType] as FakeType[],
     override: null as Handler | null,
   }
 
@@ -193,7 +198,30 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
       if (state.override && (await state.override(route, request))) return
 
       if (url.pathname === '/content-types' && method === 'GET') {
-        return fulfill(route, 200, { items: [pageType, postType] })
+        return fulfill(route, 200, { items: state.types })
+      }
+      if (url.pathname === '/content-types' && method === 'POST') {
+        const body = request.postDataJSON() as { name: string; urlPrefix: string }
+        const slug = body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        const same = state.types.find((type) => type.slug === slug)
+        if (same) {
+          return fulfill(route, 409, {
+            statusCode: 409,
+            message: `This site already has a content type called ${same.name}`,
+          })
+        }
+        const made: FakeType = {
+          id: `0198f2a0-0000-7000-8000-0000000000b${state.types.length + 1}`,
+          slug,
+          name: body.name,
+          urlPrefix: body.urlPrefix,
+          hierarchical: false,
+          hasCategories: false,
+          hasTags: false,
+          isBuiltin: false,
+        }
+        state.types = [...state.types, made]
+        return fulfill(route, 201, made)
       }
       if (url.pathname === '/content' && method === 'GET') {
         const type = url.searchParams.get('type')
@@ -221,7 +249,7 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
           slug: string
           blocks?: unknown[]
         }
-        const type = [pageType, postType].find((item) => item.slug === body.type)
+        const type = state.types.find((item) => item.slug === body.type)
         if (!type) return fulfill(route, 400, { message: 'Invalid request', errors: ['type: unknown'] })
         const created = fakePage(state.pages.length + 100, {
           type: typeRef(type),
