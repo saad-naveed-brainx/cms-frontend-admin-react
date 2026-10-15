@@ -213,9 +213,10 @@ label.check input {
   font-size: 13px;
 }
 
-/* Buttons, and links that look like buttons */
+/* Buttons, and links and file pickers (a label around the input) that look like buttons */
 button,
-a.button {
+a.button,
+label.button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -235,21 +236,24 @@ a.button {
 }
 
 button:hover,
-a.button:hover {
+a.button:hover,
+label.button:hover {
   color: var(--wp-on-blue);
   background: var(--wp-blue-dark);
   border-color: var(--wp-blue-dark);
 }
 
 button.secondary,
-a.button.secondary {
+a.button.secondary,
+label.button.secondary {
   color: var(--wp-blue);
   background: var(--wp-stripe);
   border-color: var(--wp-blue);
 }
 
 button.secondary:hover,
-a.button.secondary:hover {
+a.button.secondary:hover,
+label.button.secondary:hover {
   color: var(--wp-blue-dark);
   background: var(--wp-page);
   border-color: var(--wp-blue-dark);
