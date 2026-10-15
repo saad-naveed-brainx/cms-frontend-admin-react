@@ -11,6 +11,21 @@ const port = /^\d{1,5}$/.test(String(import.meta.env.VITE_SITE_PORT ?? ''))
   ? `:${import.meta.env.VITE_SITE_PORT}`
   : ''
 
+/**
+ * The live platform's domain for sites, from `VITE_SITE_DOMAIN` (D-045): `nodepress.brainxdemo.com`,
+ * so a one-word address typed in New site is saved as `bistro.nodepress.brainxdemo.com`. Lower-case,
+ * without a leading dot; anything that is not a domain is no setting at all.
+ */
+export function domainSetting(value: unknown): string {
+  const domain = String(value ?? '')
+    .trim()
+    .replace(/^\./, '')
+    .toLowerCase()
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)+$/.test(domain) ? domain : ''
+}
+
+export const siteDomain = domainSetting(import.meta.env.VITE_SITE_DOMAIN)
+
 /** The public address of a page: the home page (`/home`) is the site's front page, `/`. */
 export function siteUrl(host: string, path = '/'): string {
   const shown = path === '/home' ? '/' : path

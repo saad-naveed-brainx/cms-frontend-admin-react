@@ -109,12 +109,16 @@ export function tidyAddress(value: string): string {
  * The address as the site is saved with it. On this computer (`local`) a site is only reachable at a
  * `.localhost` address, so one is made of whatever was typed (D-038): `cafe` and `cafe.example.com`
  * become `cafe.localhost` and `cafe.example.com.localhost`; a port and a final dot are dropped first,
- * as the API drops them. Elsewhere, and for an empty address, it is kept as typed.
+ * as the API drops them. On the live admin a one-word address is put under the platform's `domain`
+ * (D-045): `bistro` becomes `bistro.nodepress.brainxdemo.com`. An address with a dot is a full one and
+ * is kept as typed, as is every address when there is no domain, and an empty one.
  */
-export function savedAddress(tidied: string, local: boolean): string {
-  if (!local || tidied === '') return tidied
-  const host = tidied.replace(/:\d+$/, '').replace(/\.$/, '')
-  return /^localhost$|\.localhost$/i.test(host) ? host : `${host}.localhost`
+export function savedAddress(tidied: string, local: boolean, domain = ''): string {
+  if (tidied === '') return tidied
+  const host = tidied.replace(/:\d+$/, '')
+  if (!local) return domain && !host.includes('.') ? `${host}.${domain}` : tidied
+  const bare = host.replace(/\.$/, '')
+  return /^localhost$|\.localhost$/i.test(bare) ? bare : `${bare}.localhost`
 }
 
 /** The host an address stands for once the API has tidied it: lower-case, with no port. */

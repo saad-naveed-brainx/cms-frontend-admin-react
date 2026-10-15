@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { describeSiteFailure, savedAddress, tidyAddress } from './helpers.ts'
 import { reloadProfile } from './session.ts'
-import { onThisComputer } from './site-links.ts'
+import { onThisComputer, siteDomain } from './site-links.ts'
 import { createSite, fetchOrganizations } from './sites-api.ts'
 import type { Organization } from './sites-api.ts'
 
@@ -135,7 +135,7 @@ export default function NewSite() {
       return
     }
 
-    const saved = tidy.map((address) => savedAddress(address, local))
+    const saved = tidy.map((address) => savedAddress(address, local, siteDomain))
     inFlight.current = true
     setBusy(true)
     try {
@@ -196,7 +196,7 @@ export default function NewSite() {
         {addresses.map((address, index) => {
           const error = errors[`hostnames.${index}`]
           const typed = tidyAddress(address)
-          const willSave = savedAddress(typed, local)
+          const willSave = savedAddress(typed, local, siteDomain)
           const changes = willSave !== typed
           const described = [changes ? `address-${index}-saved` : null, 'address-hint']
           return (
@@ -246,6 +246,14 @@ export default function NewSite() {
                       is added for you (<code>cafe</code> is saved as <code>cafe.localhost</code>),
                       so the browser opens the site here; on the live server an address is kept as
                       typed. The first address is the main one.
+                    </>
+                  ) : siteDomain ? (
+                    <>
+                      What people type to visit the site. A single word is put under{' '}
+                      <code>{siteDomain}</code> for you (<code>bistro</code> is saved as{' '}
+                      <code>bistro.{siteDomain}</code>); a full address like{' '}
+                      <code>cafe.example.com</code> is kept as typed. The first address is the main
+                      one.
                     </>
                   ) : (
                     <>

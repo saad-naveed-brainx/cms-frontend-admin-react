@@ -77,7 +77,8 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   the history entry, so a reload of that page shows it again (as with "Page created."). Opened on this computer
   (`onThisComputer()` in `site-links.ts`: `localhost`, `127.0.0.1`, `*.localhost`), every address is saved as a
   `.localhost` one (`savedAddress()` in `helpers.ts`: `xyz` → `xyz.localhost`; `../docs/DECISIONS.md` D-038), shown as
-  "Will be saved as …" under the box; on a live server addresses are sent as typed. Tests that type an address expect
+  "Will be saved as …" under the box. On a live server a one-word address is put under `VITE_SITE_DOMAIN` (`bistro` →
+  `bistro.nodepress.brainxdemo.com`, `../docs/DECISIONS.md` D-045), shown the same way; an address with a dot is sent as typed. Tests that type an address expect
   `.localhost` on it.
 - **Deleting a site** (`Sites.tsx`, `deleteSite` in `sites-api.ts`, `../docs/DECISIONS.md` D-039): a **Delete** button on the
   Sites screen only where the membership says `ownsOrganization`; it opens a panel ("Delete <name>?") where the site's name
