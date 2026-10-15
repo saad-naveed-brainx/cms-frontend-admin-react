@@ -27,6 +27,12 @@ VITE_API_URL="http://localhost:4001"
 
 The API must list `http://localhost:5173` in its `CORS_ORIGINS`.
 
+## Production
+
+Deployed with the API and the website by the runbook in the api repo (`deploy/README.md`). This repo's
+part is in `deploy/`: the live `.env` (`production.env.example`, built into the files) and the nginx
+server blocks that serve `dist/` at `admin.nodepress.brainxdemo.com` (`nginx.conf`).
+
 ## Scripts
 
 | Script              | Does                              |
