@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { fakeContent, fakePage, postType, signedInAs } from '../support/mock-api.ts'
+import {
+  fakeContent,
+  fakeMedia,
+  fakeMediaItem,
+  fakePage,
+  postType,
+  signedInAs,
+} from '../support/mock-api.ts'
 
 /**
  * Screenshots of the page screens against the approved baselines. The content API's answers are
@@ -41,7 +48,8 @@ const withBlocks = fakePage(7, {
       headline: 'Fresh bread, every morning',
       body: 'Sourdough, rye and seeded loaves from our own oven.',
       primaryAction: { label: 'Order now', href: '/shop' },
-      image: { src: 'https://example.com/loaf.jpg', alt: 'A loaf of sourdough' },
+      // A library picture, which the stand-in serves (the same small PNG every time).
+      image: { src: fakeMediaItem(1).url, alt: 'A loaf of sourdough' },
     },
     {
       type: 'featureGrid',
@@ -84,9 +92,19 @@ for (const width of [375, 768, 1280]) {
 
     test('[UC-RS-21] the edit page with blocks looks as approved', async ({ page }) => {
       await fakeContent(page, [withBlocks])
+      await fakeMedia(page)
       await signedInAs(page, EVERYTHING)
       await page.goto(`/pages/${withBlocks.id}`)
       await expect(page.getByRole('heading', { level: 3 })).toHaveCount(4)
+      // Both copies of the picture (the form's small view, the preview's) have loaded.
+      const thumb = page.locator('.library-choice-thumb')
+      await expect.poll(() => thumb.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(96)
+      const drawn = page
+        .frameLocator('iframe[title="Live preview of this page"]')
+        .getByRole('img', {
+          name: 'A loaf of sourdough',
+        })
+      await expect.poll(() => drawn.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(96)
       await expect(page).toHaveScreenshot(`edit-page-blocks-${width}.png`, { fullPage: true })
     })
 

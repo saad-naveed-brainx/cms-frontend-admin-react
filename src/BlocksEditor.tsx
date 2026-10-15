@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { isRecord } from './api.ts'
 import { BLOCK_SCHEMAS, schemaFor } from './block-schemas.ts'
 import type { BlockSchema, Field } from './block-schemas.ts'
 import { blockName, fieldId, newKey } from './block-drafts.ts'
 import type { Draft } from './block-drafts.ts'
+import MediaPicker from './MediaPicker.tsx'
 import RichTextField from './RichTextField.tsx'
 
 const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
@@ -138,6 +139,18 @@ function FieldView({ field, value, path, errors, mustFill, onChange }: FieldProp
             {field.label}
             {star}
           </legend>
+          {field.picker && (
+            <LibraryChoice
+              src={typeof object.src === 'string' ? object.src : ''}
+              onChoose={(url) => {
+                onChange({ ...object, src: url })
+                // The picture needs words for people who cannot see it: the next thing to fill.
+                if (typeof object.alt !== 'string' || object.alt.trim() === '') {
+                  setTimeout(() => document.getElementById(fieldId(`${path}.alt`))?.focus())
+                }
+              }}
+            />
+          )}
           {field.fields.map((sub) => (
             <FieldView
               key={sub.key}
@@ -209,6 +222,30 @@ function FieldView({ field, value, path, errors, mustFill, onChange }: FieldProp
       )
     }
   }
+}
+
+/** "Choose from library" for a picture field, with a small view of the one chosen (MED-03). */
+function LibraryChoice({ src, onChoose }: { src: string; onChoose: (url: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const shown = /^(?:https?:\/\/|\/(?!\/))/i.test(src.trim())
+  return (
+    <div className="library-choice">
+      {shown && <img className="library-choice-thumb" src={src.trim()} alt="" />}
+      <button type="button" className="secondary small" onClick={() => setOpen(true)}>
+        {shown ? 'Change picture' : 'Choose from library'}
+      </button>
+      {open && (
+        <MediaPicker
+          title="Choose a picture"
+          onClose={() => setOpen(false)}
+          onChoose={(item) => {
+            setOpen(false)
+            onChoose(item.url)
+          }}
+        />
+      )}
+    </div>
+  )
 }
 
 type Props = {

@@ -21,6 +21,8 @@ export type AppearanceDraft = {
   name: string
   tagline: string
   footerNote: string
+  /** The logo's address (a library picture), or `''` for none. */
+  logoUrl: string
   /** The ready-made palette the colours start from; `null` when the stored ones match none (kept as they are). */
   paletteName: string | null
   /** The colours the site starts from: the chosen palette's, or the stored ones. */
@@ -47,6 +49,7 @@ export function draftFrom(appearance: Appearance): AppearanceDraft {
     name: appearance.name,
     tagline: appearance.tagline,
     footerNote: appearance.footerNote,
+    logoUrl: appearance.logoUrl,
     paletteName: match?.name ?? null,
     base: match?.palette ?? theme.palette,
     brand: theme.palette.brand,
@@ -116,6 +119,7 @@ export function appearanceChanges(draft: AppearanceDraft, saved: Appearance): Ap
   if (draft.name.trim() !== saved.name) changes.name = draft.name.trim()
   if (draft.tagline.trim() !== saved.tagline) changes.tagline = draft.tagline.trim()
   if (draft.footerNote.trim() !== saved.footerNote) changes.footerNote = draft.footerNote.trim()
+  if (draft.logoUrl !== saved.logoUrl) changes.logoUrl = draft.logoUrl
   const theme = themeFrom(draft)
   if (!sameTheme(theme, resolveTheme(saved.theme))) changes.theme = theme
   return changes

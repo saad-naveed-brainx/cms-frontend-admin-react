@@ -427,7 +427,12 @@ export type FakeMedia = {
   createdAt: string
 }
 
-const mediaBase = () => `http://localhost:${flowApiPort}/uploads/${orchard.site.id}`
+/**
+ * Where the stand-in's pictures live: a fixed address, not the stand-in API's port, so a screenshot
+ * that shows a picture's address is the same in every checkout and slot.
+ */
+const MEDIA_HOST = 'media.test'
+const mediaBase = () => `https://${MEDIA_HOST}/uploads/${orchard.site.id}`
 
 export function fakeMediaItem(n: number, fields: Partial<FakeMedia> = {}): FakeMedia {
   const id = `0198f2a0-0000-7000-8000-${String(n).padStart(12, '0')}`
@@ -447,8 +452,8 @@ export function fakeMediaItem(n: number, fields: Partial<FakeMedia> = {}): FakeM
 
 /**
  * A stand-in for the media library: `GET /media` (paged, newest first), `POST /media` (the file's
- * name is read from the form; `uploads` records each), and every `/uploads/…` file answered with
- * `SAMPLE_PNG`. `override` can answer a call itself first.
+ * name is read from the form; `uploads` records each), and every picture at `https://media.test/uploads/…`
+ * answered with `SAMPLE_PNG`. `override` can answer a call itself first.
  */
 export async function fakeMedia(page: Page, initial: FakeMedia[] = []) {
   const state = {
@@ -458,7 +463,7 @@ export async function fakeMedia(page: Page, initial: FakeMedia[] = []) {
   }
   let next = 1000
   await page.route(
-    (url) => url.port === String(flowApiPort) && url.pathname.startsWith('/uploads/'),
+    (url) => url.hostname === MEDIA_HOST && url.pathname.startsWith('/uploads/'),
     (route) => route.fulfill({ status: 200, contentType: 'image/png', body: SAMPLE_PNG }),
   )
   await page.route(

@@ -10,8 +10,13 @@ export function SiteHeader({ settings }: { settings: SiteSettings }) {
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- see above: a full load of the home page is fine */}
           <a
             href="/"
-            className="font-[family-name:var(--site-font-display)] text-lg font-semibold tracking-[-0.01em] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-accent)]"
+            className="flex items-center gap-3 self-center font-[family-name:var(--site-font-display)] text-lg font-semibold tracking-[-0.01em] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-accent)]"
           >
+            {settings.logo ? (
+              // The name beside it says what the link is, so the picture itself is not read out.
+              // eslint-disable-next-line @next/next/no-img-element -- a plain <img>, as the blocks' (the admin draws this header too)
+              <img src={settings.logo} alt="" className="block h-10 w-auto max-w-40 object-contain" />
+            ) : null}
             {settings.name}
           </a>
           {settings.tagline ? (

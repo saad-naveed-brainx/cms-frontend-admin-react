@@ -97,6 +97,7 @@ test('[UC-AP-07] changes the name, tagline, footer note, palette, brand and acce
     name: 'Style House & Co',
     tagline: 'Tailoring since 1990',
     footerNote: '3 Mill Lane · By appointment',
+    logoUrl: '',
     theme: {
       typeSet: 'technical',
       shape: 'sharp',

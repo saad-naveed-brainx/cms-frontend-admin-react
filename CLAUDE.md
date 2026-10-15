@@ -30,7 +30,7 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `src/site-blocks/site/` also holds exact copies of the website's site frame (`SiteChrome`, `SiteHeader`, `SiteFooter`,
   `types.ts`) and its ready-made palettes and contrast helper (`palettes.ts`, `contrast.ts`), for the Appearance screen.
 - **Appearance** (`/appearance`, `Appearance.tsx`, `appearance-draft.ts`, `appearance-api.ts`, GOV-04, `../docs/DECISIONS.md`
-  D-036): the site's name, tagline, footer note and look, with the website's own header, home page and footer in the
+  D-036): the site's name, tagline, footer note, logo and look, with the website's own header, home page and footer in the
   preview. Colours start from a ready-made palette, then the brand and accent colours (text on the brand colour is chosen
   for contrast; a faint accent or brand is warned about, not refused). Save sends only what changed (the theme whole),
   then asks `/auth/me` again so the top bar and the edit screen's preview use the new name and theme. In the menu only
@@ -111,6 +111,14 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `authed()` with a `FormData` body (`request()` then sends no JSON `Content-Type`). Pictures load from the API's address
   (`url`, `thumbUrl`), never from the admin's. The stand-in is `fakeMedia` (every `/uploads/…` answers `SAMPLE_PNG`); the
   flow API stores uploads in a throwaway folder (`MEDIA_DIR` in `e2e/flow/start-api.mjs`).
+- **Choosing a library picture** (`MediaPicker.tsx`, MED-03): a native modal `<dialog>` ("Choose a picture", "Choose a logo")
+  with the library's grid; clicking a picture chooses it, "Upload a new picture" (with `media.upload`) adds one and chooses
+  it, Escape or Cancel closes it. Render it only while choosing (`{open && <MediaPicker … />}`): it opens on mount and
+  asks for the library each time. Picture groups (`picker: true` in `block-schemas.ts`: Hero and Image and text) show
+  "Choose from library" / "Change picture" with a small view; choosing fills `src` with the picture's full address and
+  moves to Alt text when it is empty (the site draws no picture without alt text, so neither does the preview). The
+  Appearance screen's **Logo** (`logoUrl`, `''` for none) is chosen the same way, shown in the preview's header, and
+  saved with Save; Remove logo clears it.
 - **The search engines box** (`SeoBox.tsx`, `seo-fields.ts`, SEO-01, `../docs/DECISIONS.md` D-033) sits under the blocks
   on the edit screen, as Yoast's does: a search result preview that follows the typing, then SEO title, meta description
   (each with Google's rough length, 60 and 160, as a guide only), "Hide this page from search engines" and, under Advanced

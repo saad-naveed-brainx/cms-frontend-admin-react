@@ -11,7 +11,7 @@ import type { Block, BlockOfType, BlockType, ImageRef, LinkRef } from './types';
 /** Where a link may point: this site, another web address, an email or a phone number. Not `javascript:`. */
 const SAFE_LINK = /^(?:https?:\/\/|mailto:|tel:|\/(?!\/)|#)/i;
 /** Where an image may load from: a web address or this site's own files. */
-const SAFE_IMAGE = /^(?:https?:\/\/|\/(?!\/))/i;
+export const SAFE_IMAGE = /^(?:https?:\/\/|\/(?!\/))/i;
 
 const text = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 
