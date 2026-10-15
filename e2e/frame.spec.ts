@@ -27,7 +27,7 @@ const post = { id: postType.id, slug: postType.slug, name: postType.name }
 const menu = (page: Page) => page.getByRole('navigation', { name: 'Main' })
 const menuEntries = (page: Page) => menu(page).locator('.menu-top')
 
-test('[UC-BE-01] the menu offers the Dashboard, one entry per content type and Sites, and marks where you are', async ({
+test('[UC-BE-01] the menu offers the Dashboard, one entry per content type, Media and Sites, and marks where you are', async ({
   page,
 }) => {
   await fakeContent(page, [
@@ -36,7 +36,7 @@ test('[UC-BE-01] the menu offers the Dashboard, one entry per content type and S
   ])
   await signedInAs(page, EVERYTHING)
 
-  await expect(menuEntries(page)).toHaveText(['Dashboard', 'Pages', 'Posts', 'Sites'])
+  await expect(menuEntries(page)).toHaveText(['Dashboard', 'Pages', 'Posts', 'Media', 'Sites'])
   await expect(menu(page).getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
     'aria-current',
     'page',
@@ -94,7 +94,7 @@ test('[UC-BE-03] when the content types cannot load, one Content entry lists eve
   }
   await signedInAs(page, EVERYTHING)
 
-  await expect(menuEntries(page)).toHaveText(['Dashboard', 'Content', 'Sites'])
+  await expect(menuEntries(page)).toHaveText(['Dashboard', 'Content', 'Media', 'Sites'])
   await menu(page).getByRole('link', { name: 'Content' }).click()
   await expect(page).toHaveURL(/\/pages$/)
   await expect(page.getByRole('heading', { level: 1, name: 'All content' })).toBeVisible()

@@ -407,3 +407,84 @@ export async function fakeAppearance(page: Page, initial: FakeAppearance) {
   )
   return state
 }
+
+/** A real 96 × 64 PNG, small enough to write here: what the stand-in serves for every picture. */
+export const SAMPLE_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAGAAAABACAMAAADS6oI8AAAAA1BMVEXWhD6w8DS8AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAHUlEQVRYw+3BMQEAAADCoPVP7W0HoAAAAAAAAN4AGEAAAVgzK50AAAAASUVORK5CYII=',
+  'base64',
+)
+
+/** One picture as `GET /media` lists it (api/src/media/media.service.ts). */
+export type FakeMedia = {
+  id: string
+  filename: string
+  url: string
+  thumbUrl: string
+  mimeType: string
+  sizeBytes: number
+  width: number | null
+  height: number | null
+  createdAt: string
+}
+
+const mediaBase = () => `http://localhost:${flowApiPort}/uploads/${orchard.site.id}`
+
+export function fakeMediaItem(n: number, fields: Partial<FakeMedia> = {}): FakeMedia {
+  const id = `0198f2a0-0000-7000-8000-${String(n).padStart(12, '0')}`
+  return {
+    id,
+    filename: `picture-${n}.png`,
+    url: `${mediaBase()}/${id}.png`,
+    thumbUrl: `${mediaBase()}/${id}-thumb.webp`,
+    mimeType: 'image/png',
+    sizeBytes: 245_000,
+    width: 1600,
+    height: 1067,
+    createdAt: new Date(Date.UTC(2026, 9, 1, 9, 0, n)).toISOString(),
+    ...fields,
+  }
+}
+
+/**
+ * A stand-in for the media library: `GET /media` (paged, newest first), `POST /media` (the file's
+ * name is read from the form; `uploads` records each), and every `/uploads/…` file answered with
+ * `SAMPLE_PNG`. `override` can answer a call itself first.
+ */
+export async function fakeMedia(page: Page, initial: FakeMedia[] = []) {
+  const state = {
+    items: [...initial],
+    uploads: [] as string[],
+    override: null as ((route: Route, request: Request) => boolean) | null,
+  }
+  let next = 1000
+  await page.route(
+    (url) => url.port === String(flowApiPort) && url.pathname.startsWith('/uploads/'),
+    (route) => route.fulfill({ status: 200, contentType: 'image/png', body: SAMPLE_PNG }),
+  )
+  await page.route(
+    (url) => url.port === String(flowApiPort) && url.pathname === '/media',
+    async (route, request) => {
+      if (state.override?.(route, request)) return
+      if (request.method() === 'GET') {
+        const query = new URL(request.url()).searchParams
+        const limit = Number(query.get('limit') ?? 40)
+        const offset = Number(query.get('offset') ?? 0)
+        return fulfill(route, 200, {
+          items: state.items.slice(offset, offset + limit),
+          total: state.items.length,
+        })
+      }
+      if (request.method() === 'POST') {
+        const form = request.postDataBuffer()?.toString('latin1') ?? ''
+        const filename = /filename="([^"]*)"/.exec(form)?.[1] ?? 'picture'
+        state.uploads.push(filename)
+        next += 1
+        const item = fakeMediaItem(next, { filename, sizeBytes: 1234 })
+        state.items = [item, ...state.items]
+        return fulfill(route, 201, item)
+      }
+      return fulfill(route, 404, { message: 'Not found' })
+    },
+  )
+  return state
+}

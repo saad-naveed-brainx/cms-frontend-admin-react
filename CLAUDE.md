@@ -51,7 +51,7 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
   route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
-  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/sites` and `/sites/new`). The page list keeps its filters and
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/appearance`, `/sites` and `/sites/new`). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
 - **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
   Site switcher, New site, "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
@@ -104,6 +104,13 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   paragraph kept at the end) and sends `''` when empty. TipTap re-applies `useEditor`'s options on every render, so the
   box's `aria-*` attributes live there, not in a later `setOptions`. A value from outside (after a save) replaces the text
   without counting as a change. Pasted HTML goes through TipTap's schema, and the API cleans it again on save.
+- **The media library** (`/media`, `Media.tsx`, `media-api.ts`, `../docs/DECISIONS.md` D-042): "Media" in the menu for every
+  member; the grid of small copies (`thumbUrl`), newest first, 40 at a time ("Show more pictures"); **Add New Media File**
+  (a file input inside a label, several files at once, sent one by one) only with `media.upload`. JPEG, PNG and WebP up to
+  10 MB are checked before sending; the API checks again and its message is shown with the file's name. Uploads go through
+  `authed()` with a `FormData` body (`request()` then sends no JSON `Content-Type`). Pictures load from the API's address
+  (`url`, `thumbUrl`), never from the admin's. The stand-in is `fakeMedia` (every `/uploads/…` answers `SAMPLE_PNG`); the
+  flow API stores uploads in a throwaway folder (`MEDIA_DIR` in `e2e/flow/start-api.mjs`).
 - **The search engines box** (`SeoBox.tsx`, `seo-fields.ts`, SEO-01, `../docs/DECISIONS.md` D-033) sits under the blocks
   on the edit screen, as Yoast's does: a search result preview that follows the typing, then SEO title, meta description
   (each with Google's rough length, 60 and 160, as a guide only), "Hide this page from search engines" and, under Advanced

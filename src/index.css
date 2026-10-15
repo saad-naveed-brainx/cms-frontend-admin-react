@@ -320,6 +320,19 @@ button.small {
   border-left-color: var(--wp-yellow);
 }
 
+.notice.error {
+  border-left-color: var(--wp-red);
+}
+
+.notice.error p {
+  margin: 0;
+}
+
+.notice.error p + p,
+.notice.error p + button {
+  margin-top: 6px;
+}
+
 .front-page-notice {
   display: flex;
   flex-direction: column;
@@ -1375,4 +1388,69 @@ fieldset.group legend {
 
 .rich-text + .field-error {
   margin-top: 0;
+}
+
+/* The media library (Media.tsx): a grid of small copies, as WordPress's */
+.upload-button {
+  cursor: pointer;
+}
+
+.upload-button:focus-within {
+  box-shadow: 0 0 0 2px var(--wp-blue);
+}
+
+.upload-button.busy {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 12px 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.media-item figure {
+  margin: 0;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border-light);
+  box-shadow: 0 1px 1px var(--wp-shadow);
+}
+
+.media-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  background: var(--wp-stripe);
+  overflow: hidden;
+}
+
+.media-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.media-item figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.media-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--wp-heading);
+  font-weight: 600;
+}
+
+.media-meta {
+  color: var(--wp-muted);
 }
