@@ -244,8 +244,7 @@ export default function NewSite() {
                     <>
                       What people type to visit the site. On this computer <code>.localhost</code>{' '}
                       is added for you (<code>cafe</code> is saved as <code>cafe.localhost</code>),
-                      so the browser opens the site here; on the live server an address is kept as
-                      typed. The first address is the main one.
+                      so the browser opens the site here. The first address is the main one.
                     </>
                   ) : siteDomain ? (
                     <>
