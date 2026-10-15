@@ -10,30 +10,37 @@ export type Appearance = {
   name: string
   tagline: string
   footerNote: string
+  /** The logo's address (a library picture, MED-03), or `''` for none. */
+  logoUrl: string
   theme: Record<string, unknown>
 }
 
-/** What a save sends: any of the four; the theme is always whole. */
+/** What a save sends: any of them; the theme is always whole. */
 export type AppearanceChange = Partial<Appearance>
 
-function isAppearance(value: unknown): value is Appearance {
+function isAppearance(
+  value: unknown,
+): value is Omit<Appearance, 'logoUrl'> & { logoUrl?: unknown } {
   return (
     isRecord(value) &&
     typeof value.name === 'string' &&
     typeof value.tagline === 'string' &&
     typeof value.footerNote === 'string' &&
+    (value.logoUrl === undefined || typeof value.logoUrl === 'string') &&
     isRecord(value.theme)
   )
 }
 
-export async function fetchAppearance(): Promise<Appearance> {
-  const answer = await authed('/appearance')
+/** The answer as the screen reads it: no logo is `''`. */
+function appearanceOf(answer: unknown): Appearance {
   if (!isAppearance(answer)) throw new ApiError(502)
-  return answer
+  return { ...answer, logoUrl: typeof answer.logoUrl === 'string' ? answer.logoUrl : '' }
+}
+
+export async function fetchAppearance(): Promise<Appearance> {
+  return appearanceOf(await authed('/appearance'))
 }
 
 export async function saveAppearance(body: AppearanceChange): Promise<Appearance> {
-  const answer = await authed('/appearance', { method: 'PATCH', body })
-  if (!isAppearance(answer)) throw new ApiError(502)
-  return answer
+  return appearanceOf(await authed('/appearance', { method: 'PATCH', body }))
 }

@@ -37,8 +37,18 @@ type RichTextField = {
   required?: boolean
   hint?: string
 }
-/** An object made of sub-fields. When it is optional, it is only checked once something in it is filled. */
-type GroupField = { kind: 'group'; key: string; label: string; required?: boolean; fields: Field[] }
+/**
+ * An object made of sub-fields. When it is optional, it is only checked once something in it is
+ * filled. `picker` offers "Choose from library" for a picture, which fills its `src` (MED-03).
+ */
+type GroupField = {
+  kind: 'group'
+  key: string
+  label: string
+  required?: boolean
+  picker?: boolean
+  fields: Field[]
+}
 /** A list of objects made of sub-fields. Entries left completely empty are dropped when saving. */
 type ListField = {
   kind: 'list'
@@ -83,6 +93,7 @@ const picture = (required: boolean): GroupField => ({
   key: 'image',
   label: 'Image',
   required,
+  picker: true,
   fields: [
     {
       kind: 'text',
@@ -91,7 +102,7 @@ const picture = (required: boolean): GroupField => ({
       max: 500,
       required: true,
       check: 'image',
-      hint: 'A full web address (https://…) or a file on this site (/media/…).',
+      hint: 'Choose from library above, or paste a full web address (https://…).',
     },
     {
       kind: 'text',

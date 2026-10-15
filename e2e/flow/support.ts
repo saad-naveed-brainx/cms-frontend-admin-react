@@ -95,6 +95,15 @@ export async function realApi(request: APIRequestContext, person: Person, siteNa
       expect(list.items, 'one page at /home').toHaveLength(1)
       return list.items[0]
     },
+    /** Adds a picture to the site's media library through the real upload route (MED-01); its `url`. */
+    async uploadPicture(name: string, bytes: Buffer): Promise<string> {
+      const response = await request.post(`${flowApiUrl}/media`, {
+        headers,
+        multipart: { file: { name, mimeType: 'image/png', buffer: bytes } },
+      })
+      expect(response.status(), 'uploading a picture').toBe(201)
+      return ((await response.json()) as { url: string }).url
+    },
     /** The site's appearance as the real API keeps it (GOV-04). */
     async getAppearance() {
       const response = await request.get(`${flowApiUrl}/appearance`, { headers })

@@ -20,6 +20,7 @@ import { fetchAppearance, saveAppearance } from './appearance-api.ts'
 import type { Appearance as Saved } from './appearance-api.ts'
 import { describeFailure } from './helpers.ts'
 import { useLeaveGuard } from './leave-guard.ts'
+import MediaPicker from './MediaPicker.tsx'
 import { fetchPage, fetchPages } from './pages-api.ts'
 import PreviewFrame from './PreviewFrame.tsx'
 import { reloadProfile } from './session.ts'
@@ -73,6 +74,7 @@ function previewOf(draft: AppearanceDraft, pages: SitePages, host: string): Site
   return {
     settings: {
       name: draft.name.trim() || 'Your site',
+      ...(draft.logoUrl ? { logo: draft.logoUrl } : {}),
       tagline: draft.tagline.trim(),
       host,
       nav: pages.nav,
@@ -101,6 +103,7 @@ export default function Appearance() {
   const [formError, setFormError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [choosingLogo, setChoosingLogo] = useState(false)
   const inFlight = useRef(false)
 
   useEffect(() => {
@@ -246,9 +249,47 @@ export default function Appearance() {
                 'Footer note',
                 'A line in the footer: an address, opening hours, a copyright notice. Leave empty for none.',
               )}
-              <p className="hint">
-                A logo image comes with the media library; until then the name is the logo.
-              </p>
+              <div className="field logo-field">
+                <span className="field-label">Logo</span>
+                {draft.logoUrl ? (
+                  <img className="logo-preview" src={draft.logoUrl} alt="The logo" />
+                ) : (
+                  <p className="hint">No logo: the header shows the site’s name only.</p>
+                )}
+                {editable && (
+                  <div className="actions">
+                    <button
+                      type="button"
+                      className="secondary small"
+                      onClick={() => setChoosingLogo(true)}
+                    >
+                      {draft.logoUrl ? 'Change logo' : 'Choose a logo'}
+                    </button>
+                    {draft.logoUrl && (
+                      <button
+                        type="button"
+                        className="secondary small"
+                        onClick={() => set({ ...draft, logoUrl: '' })}
+                      >
+                        Remove logo
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="hint">
+                  A picture from the media library, shown before the name in the header.
+                </p>
+                {choosingLogo && (
+                  <MediaPicker
+                    title="Choose a logo"
+                    onClose={() => setChoosingLogo(false)}
+                    onChoose={(item) => {
+                      setChoosingLogo(false)
+                      set({ ...draft, logoUrl: item.url })
+                    }}
+                  />
+                )}
+              </div>
             </div>
           </section>
 

@@ -7,8 +7,10 @@ import type { SiteTheme } from '@/theme/theme';
  * branding vary; the layout is fixed.
  */
 export type SiteSettings = {
-  /** Wordmark text. A logo image replaces this once media exists. */
+  /** Wordmark text, always shown: beside the logo when there is one. */
   name: string;
+  /** The logo's address (a picture from the media library, MED-03); absent shows the name only. */
+  logo?: string;
   /** Short line beside the wordmark. Empty until sites can set one. */
   tagline: string;
   /** The site's main web address. */
