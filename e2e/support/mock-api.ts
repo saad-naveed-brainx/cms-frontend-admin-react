@@ -132,6 +132,8 @@ export type FakePage = {
   seoDescription: string | null
   canonicalUrl: string | null
   noIndex: boolean
+  /** Who created the page, as list rows name them (users-roles); `null` when unknown. */
+  author: { id: string; name: string } | null
 }
 
 export const typeRef = (type: { id: string; slug: string; name: string }) => ({
@@ -162,6 +164,10 @@ export function fakePage(n: number, fields: Partial<FakePage> = {}): FakePage {
     seoDescription: null,
     canonicalUrl: null,
     noIndex: false,
+    author:
+      ('createdBy' in fields ? fields.createdBy : person.id) === person.id
+        ? { id: person.id, name: person.name }
+        : null,
     ...fields,
   }
 }
@@ -303,9 +309,16 @@ export type MockSession = { memberships: MockMembership[]; meFails: boolean }
 export async function signedInAs(
   page: Page,
   permissions: string[],
-  options: { sites?: boolean } = {},
+  options: { sites?: boolean; role?: string; ownsOrganization?: boolean } = {},
 ): Promise<MockSession> {
-  const membership = { ...orchard, role: { ...orchard.role, name: 'Tester' }, permissions }
+  const membership: MockMembership = {
+    ...orchard,
+    role: { ...orchard.role, name: options.role ?? 'Tester' },
+    permissions,
+    ...(options.ownsOrganization === undefined
+      ? {}
+      : { ownsOrganization: options.ownsOrganization }),
+  }
   const session: MockSession = {
     memberships: options.sites === false ? [] : [membership],
     meFails: false,

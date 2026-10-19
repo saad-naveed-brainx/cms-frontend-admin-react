@@ -34,7 +34,8 @@ test('[UC-BE-01] the menu offers the Dashboard, one entry per content type, Medi
     fakePage(1, { title: 'Welcome' }),
     fakePage(2, { title: 'Opening hours', type: post, path: '/blog/opening-hours' }),
   ])
-  await signedInAs(page, EVERYTHING)
+  // New site shows only for someone who owns an organisation (users-roles D11).
+  await signedInAs(page, EVERYTHING, { ownsOrganization: true })
 
   await expect(menuEntries(page)).toHaveText(['Dashboard', 'Pages', 'Posts', 'Media', 'Sites'])
   await expect(menu(page).getByRole('link', { name: 'Dashboard' })).toHaveAttribute(

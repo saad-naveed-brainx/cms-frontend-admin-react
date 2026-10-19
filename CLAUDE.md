@@ -54,7 +54,7 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/sites` and `/sites/new`). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
 - **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
-  Site switcher, New site, "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
+  Site switcher, New site only for someone who owns an organisation (`ownsAnOrganization`; a person with no sites reaches it through Sites › Add New), "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
   Dashboard, **one entry per content type of the site** (from `GET /content-types`, so `/pages?type=<slug>`, with All …
   and Add New; one "Content" entry if the types cannot load) and Sites. `/pages` with no type is "All content". The
   menu folds to icons at 960 pixels and hides behind a Menu button at 782, as WordPress's does. Light only: the
@@ -89,7 +89,7 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   starts with, published. The Dashboard and the Pages list (all content, or Pages) ask `GET /content?path=/home`; when
   there is none, or it is not published, a notice says visitors see "Page not found" and offers **Create the front page**
   (Home, a hero with the site's name, published, then its edit screen) or **Publish the front page** (with
-  `content.create`/`content.publish`; without them it asks for someone who can). A failed check shows nothing. List rows
+  `content.create` and `mayPublish`: `content.publish`, or `content.publish_own` for the person's own page, D-046; without them it asks for someone who can). A failed check shows nothing. List rows
   at `/home` read "Home — Front page". Tests that answer page lists themselves must tell the list's request from this
   check (`?path=`), or a 401 meant for the list lands on the Dashboard's check first.
 - **The block editor** (`BlocksEditor.tsx`, `block-schemas.ts`, `block-drafts.ts`) is on the edit screen: a form

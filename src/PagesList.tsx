@@ -215,6 +215,9 @@ export default function PagesList() {
                 </th>
               )}
               <th scope="col" className="hide-narrow">
+                Author
+              </th>
+              <th scope="col" className="hide-narrow">
                 Address
               </th>
               <th scope="col">Status</th>
@@ -249,6 +252,7 @@ export default function PagesList() {
                   </div>
                 </td>
                 {!type && <td className="hide-narrow">{page.type.name}</td>}
+                <td className="hide-narrow">{page.author?.name ?? '—'}</td>
                 <td className="hide-narrow">
                   <code>{page.path}</code>
                 </td>

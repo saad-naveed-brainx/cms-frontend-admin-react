@@ -37,13 +37,14 @@ type Props = { user: User; memberships: Membership[]; siteId: string | null }
 
 /**
  * The signed-in frame, laid out as WordPress lays out its admin: a dark bar across the top (the site
- * you are working on, New site, who you are) and a dark menu down the left. The menu offers only what
+ * you are working on, New site for organisation owners, who you are) and a dark menu down the left. The menu offers only what
  * works: the Dashboard, one entry per content type of the site, Media, Content types, Appearance and Sites.
  */
 export default function Shell({ user, memberships, siteId }: Props) {
   const location = useLocation()
   const navigate = useNavigate()
   const current = memberships.find((membership) => membership.site.id === siteId) ?? null
+  const { ownsAnOrganization } = useSignedIn()
   // The phone layout hides the menu behind a button; following a link closes it again.
   const [menuOpen, setMenuOpen] = useState(false)
   const [openedAt, setOpenedAt] = useState(location)
@@ -101,10 +102,12 @@ export default function Shell({ user, memberships, siteId }: Props) {
             <span className="adminbar-label">Visit Site</span>
           </a>
         )}
-        <Link className="adminbar-item" to="/sites/new">
-          <Plus aria-hidden="true" size={18} />
-          <span className="adminbar-label">New site</span>
-        </Link>
+        {ownsAnOrganization && (
+          <Link className="adminbar-item" to="/sites/new">
+            <Plus aria-hidden="true" size={18} />
+            <span className="adminbar-label">New site</span>
+          </Link>
+        )}
         <div className="adminbar-end">
           <span className="adminbar-item user">
             Howdy, <strong>{user.name}</strong>

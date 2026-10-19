@@ -24,7 +24,7 @@ type Props = {
  * publish the one there is. Nothing is shown while asking, when the question fails, or when all is well.
  */
 export default function FrontPageNotice({ onChange }: Props) {
-  const { siteId, siteName, canCreate, canPublish } = useSignedIn()
+  const { siteId, siteName, userId, canCreate, mayPublish } = useSignedIn()
   const navigate = useNavigate()
   const [front, setFront] = useState<Front>({ status: 'unknown' })
   const [busy, setBusy] = useState(false)
@@ -96,6 +96,9 @@ export default function FrontPageNotice({ onChange }: Props) {
   if (front.status === 'unknown' || front.page?.status === 'published') return null
 
   const page = front.page
+  // A page made here is the person's own, so `content.publish_own` is enough to publish it.
+  const mayCreate = canCreate && mayPublish(userId)
+  const mayPublishIt = page !== null && mayPublish(page.createdBy)
   return (
     <section className="notice warning front-page-notice" aria-labelledby="front-page-heading">
       <h2 id="front-page-heading">
@@ -111,12 +114,12 @@ export default function FrontPageNotice({ onChange }: Props) {
         </p>
       )}
       <div className="actions">
-        {!page && canCreate && canPublish && (
+        {!page && mayCreate && (
           <button type="button" disabled={busy} onClick={create}>
             {busy ? 'Creating…' : 'Create the front page'}
           </button>
         )}
-        {page && canPublish && (
+        {page && mayPublishIt && (
           <button type="button" disabled={busy} onClick={() => publish(page)}>
             {busy ? 'Publishing…' : 'Publish the front page'}
           </button>
@@ -127,7 +130,7 @@ export default function FrontPageNotice({ onChange }: Props) {
           </Link>
         )}
       </div>
-      {((!page && !(canCreate && canPublish)) || (page && !canPublish)) && (
+      {((!page && !mayCreate) || (page && !mayPublishIt)) && (
         <p>
           Ask someone who can publish pages on this site to {page ? 'publish it' : 'create it'}.
         </p>
