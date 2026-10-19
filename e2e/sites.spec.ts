@@ -218,7 +218,9 @@ test('[UC-RS-13] a person with no sites can still create one, and lands on it', 
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1, name: 'No sites yet' })).toBeVisible()
 
-  await page.getByRole('banner').getByRole('link', { name: 'New site' }).click()
+  // With no membership nothing says they own an organisation, so the top bar has no New site
+  // (users-roles D11); the screen itself is still routed for them.
+  await page.goto('/sites/new')
   await nameField(page).fill('First Site')
   await firstAddress(page).fill('first.test')
   await create(page).click()

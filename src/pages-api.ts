@@ -23,6 +23,8 @@ export type PageSummary = {
   path: string
   status: string
   createdBy: string | null
+  /** Who wrote it (D9); null when their account is gone. Present on list rows. */
+  author?: { id: string; name: string } | null
   updatedAt: string
 }
 
@@ -64,6 +66,10 @@ function isPageType(value: unknown): value is PageType {
   )
 }
 
+function isAuthor(value: unknown): value is { id: string; name: string } {
+  return isRecord(value) && typeof value.id === 'string' && typeof value.name === 'string'
+}
+
 function isPageSummary(value: unknown): value is PageSummary {
   return (
     isRecord(value) &&
@@ -77,6 +83,7 @@ function isPageSummary(value: unknown): value is PageSummary {
     typeof value.path === 'string' &&
     typeof value.status === 'string' &&
     (value.createdBy === null || typeof value.createdBy === 'string') &&
+    (value.author === undefined || value.author === null || isAuthor(value.author)) &&
     typeof value.updatedAt === 'string'
   )
 }

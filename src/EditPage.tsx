@@ -27,7 +27,7 @@ type Answer = { key: string; loaded: Loaded }
 export default function EditPage() {
   const { id = '' } = useParams()
   const location = useLocation()
-  const { mayEdit, canPublish, siteHost, siteName, siteTheme } = useSignedIn()
+  const { mayEdit, mayPublish, siteHost, siteName, siteTheme } = useSignedIn()
 
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -132,11 +132,12 @@ export default function EditPage() {
 
   const { page } = load
   const editable = mayEdit(page.createdBy)
+  const publishable = mayPublish(page.createdBy)
   const published = page.status === 'published'
   // One way to look at the page on its site: Preview while visitors cannot see it yet, View page once
   // they can. Saving a published page updates it at once, so a preview of it would be the live page (D-035).
   const offersPreview = siteHost !== null && !published
-  const actions = [offersPreview && 'Preview', canPublish && !published && 'Publish']
+  const actions = [offersPreview && 'Preview', publishable && !published && 'Publish']
   const waiting = actions.filter(Boolean)
   const saveFirst = published
     ? 'Save your changes first: visitors see the page as last saved.'
@@ -366,7 +367,7 @@ export default function EditPage() {
                 <dt>Status</dt>
                 <dd>
                   {statusLabel(page.status)}
-                  {canPublish && (
+                  {publishable && (
                     <>
                       <button
                         type="button"

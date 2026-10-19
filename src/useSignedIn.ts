@@ -6,6 +6,7 @@ const CONTENT_CREATE = 'content.create'
 const CONTENT_EDIT_ANY = 'content.edit_any'
 const CONTENT_EDIT_OWN = 'content.edit_own'
 const CONTENT_PUBLISH = 'content.publish'
+const CONTENT_PUBLISH_OWN = 'content.publish_own'
 const SETTINGS_MANAGE = 'settings.manage'
 const MEDIA_UPLOAD = 'media.upload'
 const CONTENT_TYPES_MANAGE = 'content_types.manage'
@@ -22,11 +23,12 @@ export function useSignedIn() {
       siteHost: null,
       siteTheme: {} as unknown,
       canCreate: false,
-      canPublish: false,
+      ownsAnOrganization: false,
       canManageSettings: false,
       canUpload: false,
       canManageTypes: false,
       mayEdit: (_createdBy: string | null) => false,
+      mayPublish: (_createdBy: string | null) => false,
     }
   }
 
@@ -43,7 +45,8 @@ export function useSignedIn() {
     /** The current site's stored theme, for the live preview; the preview lays it over the default. */
     siteTheme: (membership?.site.theme ?? {}) as unknown,
     canCreate: permissions.includes(CONTENT_CREATE),
-    canPublish: permissions.includes(CONTENT_PUBLISH),
+    /** Someone who owns an organisation may make sites in it (New site, D11). */
+    ownsAnOrganization: state.memberships.some((m) => m.ownsOrganization === true),
     /** The site's name, header, footer and look (Appearance, GOV-04). */
     canManageSettings: permissions.includes(SETTINGS_MANAGE),
     /** Adding pictures to the media library (MED-01). */
@@ -54,5 +57,9 @@ export function useSignedIn() {
     mayEdit: (createdBy: string | null) =>
       permissions.includes(CONTENT_EDIT_ANY) ||
       (permissions.includes(CONTENT_EDIT_OWN) && createdBy === state.user.id),
+    /** Publishing or unpublishing: any page with `content.publish`; only the person's own with `content.publish_own`. */
+    mayPublish: (createdBy: string | null) =>
+      permissions.includes(CONTENT_PUBLISH) ||
+      (permissions.includes(CONTENT_PUBLISH_OWN) && createdBy === state.user.id),
   }
 }
