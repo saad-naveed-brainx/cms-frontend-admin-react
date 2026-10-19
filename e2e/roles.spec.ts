@@ -249,6 +249,25 @@ test('[UC-UR-24] an Author who created the home page is offered "Publish the fro
   await expect(notice.getByRole('button', { name: 'Publish the front page' })).toBeVisible()
 })
 
+for (const [role, offered] of [
+  ['Author', true],
+  ['Contributor', false],
+] as const) {
+  test(`[UC-UR-24] ${role}: on a site with no home page, "Create the front page" ${offered ? 'is' : 'is not'} offered`, async ({
+    page,
+  }) => {
+    await fakeContent(page, [fakePage(8, { title: 'About', slug: 'about' })])
+    await signedInAs(page, [...ROLES[role]], { role })
+    await page.goto('/')
+
+    const notice = page.getByRole('region', { name: 'Your site has no front page' })
+    await expect(notice).toBeVisible()
+    await expect(notice.getByRole('button', { name: 'Create the front page' })).toHaveCount(
+      offered ? 1 : 0,
+    )
+  })
+}
+
 for (const [who, memberships, offered] of [
   ['someone who owns no organisation', [{ ...orchard, ownsOrganization: false }], false],
   [

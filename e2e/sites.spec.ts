@@ -219,8 +219,10 @@ test('[UC-RS-13] a person with no sites can still create one, and lands on it', 
   await expect(page.getByRole('heading', { level: 1, name: 'No sites yet' })).toBeVisible()
 
   // With no membership nothing says they own an organisation, so the top bar has no New site
-  // (users-roles D11); the screen itself is still routed for them.
-  await page.goto('/sites/new')
+  // (users-roles D11); the menu's Sites › Add New still leads to the form.
+  const menu = page.getByRole('navigation', { name: 'Main' })
+  await menu.getByRole('link', { name: 'Sites', exact: true }).click()
+  await menu.getByRole('link', { name: 'Add New' }).click()
   await nameField(page).fill('First Site')
   await firstAddress(page).fill('first.test')
   await create(page).click()
