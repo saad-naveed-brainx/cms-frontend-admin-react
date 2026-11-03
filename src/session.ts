@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { ApiError, NetworkError, isLoginResult, isProfile, request } from './api.ts'
-import type { Membership, User } from './api.ts'
+import { ApiError, NetworkError, isLoginResult, isProfile, isRecord, request } from './api.ts'
+import type { LoginResult, Membership, User } from './api.ts'
 
 /**
  * Who is signed in, kept outside React so every screen and every API call sees the same answer.
@@ -20,7 +20,10 @@ export type SessionState =
   | { status: 'cannot-check' }
   | { status: 'signed-in'; user: User; memberships: Membership[]; siteId: string | null }
 
-export type SignInOutcome = 'ok' | 'invalid' | 'unreachable' | 'failed'
+/** `paused` is the sign-in limit (users-roles T4): the API's own sentence says for how long. */
+export type SignInOutcome =
+  | { outcome: 'ok' | 'invalid' | 'unreachable' | 'failed' }
+  | { outcome: 'paused'; message: string }
 
 let state: SessionState = { status: 'checking' }
 let token: string | null = null
@@ -160,28 +163,53 @@ async function start(): Promise<void> {
   }
 }
 
+/**
+ * Makes the person a sign-in has just answered for the signed-in one, replacing whoever was. `joined`
+ * names the site an invite was for, so they land on it and not on the site last worked on in this
+ * browser (which may have been someone else's).
+ */
+export function startSession(
+  result: LoginResult,
+  joined?: { siteName: string; roleName: string },
+): void {
+  generation += 1
+  token = result.accessToken
+  storageSet(
+    SESSION_KEY,
+    JSON.stringify({ accessToken: result.accessToken, expiresAt: result.expiresAt }),
+  )
+  const landing =
+    joined &&
+    result.memberships.find(
+      (membership) =>
+        membership.site.name === joined.siteName && membership.role.name === joined.roleName,
+    )
+  if (landing) storageSet(SITE_KEY, landing.site.id)
+  setState({
+    status: 'signed-in',
+    user: result.user,
+    memberships: result.memberships,
+    siteId: pickSite(result.memberships),
+  })
+}
+
 export async function signIn(email: string, password: string): Promise<SignInOutcome> {
   try {
     const result = await request('/auth/login', { method: 'POST', body: { email, password } })
-    if (!isLoginResult(result)) return 'failed'
-
-    generation += 1
-    token = result.accessToken
-    storageSet(
-      SESSION_KEY,
-      JSON.stringify({ accessToken: result.accessToken, expiresAt: result.expiresAt }),
-    )
-    setState({
-      status: 'signed-in',
-      user: result.user,
-      memberships: result.memberships,
-      siteId: pickSite(result.memberships),
-    })
-    return 'ok'
+    if (!isLoginResult(result)) return { outcome: 'failed' }
+    startSession(result)
+    return { outcome: 'ok' }
   } catch (error) {
-    if (error instanceof NetworkError) return 'unreachable'
-    if (error instanceof ApiError && error.status === 401) return 'invalid'
-    return 'failed'
+    if (error instanceof NetworkError) return { outcome: 'unreachable' }
+    if (error instanceof ApiError && error.status === 401) return { outcome: 'invalid' }
+    if (error instanceof ApiError && error.status === 429) {
+      const message =
+        isRecord(error.body) && typeof error.body.message === 'string'
+          ? error.body.message
+          : 'Too many sign-in attempts. Try again later.'
+      return { outcome: 'paused', message }
+    }
+    return { outcome: 'failed' }
   }
 }
 

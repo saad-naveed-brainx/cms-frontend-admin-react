@@ -428,6 +428,21 @@ main.auth {
   padding: 0 14px;
 }
 
+/* The invite page: a password with its Show button beside it, and a long email wraps instead of widening the box. */
+.login-box p {
+  overflow-wrap: anywhere;
+}
+
+.password-row {
+  display: flex;
+  gap: 8px;
+}
+
+.password-row input {
+  flex: 1;
+  min-width: 0;
+}
+
 /* The signed-in frame. The menu's dark column is painted on the frame too, so it reaches the bottom of a long page. */
 .wp {
   min-height: 100vh;

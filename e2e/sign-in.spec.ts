@@ -231,3 +231,22 @@ test('[UC-AS-16] with one site there is no switcher, only the site name', async 
   await expect(page.getByLabel('Site')).toHaveCount(0)
   await expect(page.getByRole('banner')).toContainText('Orchard Bakery')
 })
+
+test('[UC-UR-23] a paused sign-in says for how long, and keeps the email', async ({ page }) => {
+  await page.route('**/auth/login', (route) =>
+    fulfill(route, 429, {
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: 'Too many sign-in attempts. Try again in 15 minutes.',
+    }),
+  )
+  await page.goto('/')
+
+  await fillAndSubmit(page)
+  await expect(page.getByRole('alert')).toHaveText(
+    'Too many sign-in attempts. Try again in 15 minutes.',
+  )
+  await expect(page.getByLabel('Email')).toHaveValue('olivia@orchard.test')
+  await expect(page.getByLabel('Password')).toHaveValue('')
+  expect(await readStorage(page, SESSION_KEY)).toBeNull()
+})

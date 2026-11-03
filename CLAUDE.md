@@ -51,7 +51,8 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
   route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
-  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites` and `/sites/new`). The page list keeps its filters and
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites` and `/sites/new`;
+  `/invite` is shown by `App.tsx` before any of this). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
 - **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
   Site switcher, New site only for someone who owns an organisation (`ownsAnOrganization`; a person with no sites reaches it through Sites › Add New), "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
@@ -130,6 +131,19 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   box is checked here. The link is `${location.origin}/invite#${token}` (plan D4): the API gives the secret once and keeps a
   fingerprint, so `InviteLink` is the only place it is ever seen, and it opens in view with Copy focused (QA lesson
   2026-10-09). Without a clipboard (a page not on https) it says to copy by hand. The stand-in is `fakeMembers`.
+- **The invite page** (`/invite#<secret>`, `Invite.tsx`, `invites-api.ts`, users-roles T7): the one page `App.tsx` shows **before**
+  the session decides, and whoever is signed in does not matter yet (it is keyed by the `#` part, so another link typed over
+  it starts it afresh). It asks the open `POST /invitations/lookup` what the link is for, then shows "You're invited to
+  <site> as <role>": a new email gets Name and Password (at least 12, as the API says; one box with a Show button), an
+  existing account only its Password. Joining calls `POST /invitations/accept`, which answers as sign-in does;
+  `startSession(result, invite)` in `session.ts` stores it and selects the invited site (matched by site and role name:
+  the answer carries no site id) and the page goes to `/`, so the secret leaves the address bar. Every failure is one case
+  of `Accepted`: a dead link (all the same 404), a wrong password (401), an account made since the page opened (409, the
+  page then asks only for the password), a pause (429, the API's own sentence) and the API's 400 lines. If someone is
+  signed in, the page says so first and joining replaces their session. `signIn()` answers `{ outcome }`, with `paused`
+  and the API's message for a 429, which the sign-in screen shows as it is while keeping the email. The stand-in is
+  `fakeInvites`; the whole journey on the real API is `e2e/flow/invite.spec.ts` (flow person Ola, `inviter`). The Add New
+  screenshot masks the link, which holds the admin's own port.
 - **Choosing a library picture** (`MediaPicker.tsx`, MED-03): a native modal `<dialog>` ("Choose a picture", "Choose a logo")
   with the library's grid; clicking a picture chooses it, "Upload a new picture" (with `media.upload`) adds one and chooses
   it, Escape or Cancel closes it. Render it only while choosing (`{open && <MediaPicker … />}`): it opens on mount and

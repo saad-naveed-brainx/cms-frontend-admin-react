@@ -795,3 +795,119 @@ export async function fakeMembers(
   )
   return state
 }
+
+// ---- the page an invite link opens (users-roles T7) ----
+
+/** A link as the stand-in knows it: `token` is the secret after the `#` of `/invite#<token>`. */
+export type FakeInvite = {
+  token: string
+  siteName: string
+  roleName: RoleName
+  email: string
+  hasAccount: boolean
+  /** Sites an existing account already belongs to; they come before the new one in its answer. */
+  alsoMemberOf?: MockMembership[]
+}
+
+/** What each role holds, in short (the real lists are `ROLE_DEFINITIONS` in api/src/auth/roles.ts). */
+const permissionsOf: Record<RoleName, string[]> = {
+  Administrator: ['content.create', 'content.edit_any', 'content.edit_own', 'members.manage'],
+  Editor: ['content.create', 'content.edit_any', 'content.edit_own', 'content.publish'],
+  Author: ['content.create', 'content.edit_own', 'content.publish_own', 'media.upload'],
+  Contributor: ['content.create', 'content.edit_own'],
+  Viewer: [],
+}
+
+/**
+ * A stand-in for the two open routes behind the invite page, with the real ones' rules
+ * (api/src/invitations/): `POST /invitations/lookup` says what a link is for and `POST
+ * /invitations/accept` joins. A new email needs a name and a password of at least 12 characters (else
+ * a 400 that names the field); an existing account needs its password: a wrong one is a 401, or a 409
+ * when a name came with it (the account appeared after the page opened). A link it does not know is
+ * the one 404 every dead link gets. While `paused` is set, an existing account's accept is the
+ * sign-in limit's 429. `calls` records each request's body and `joined` the emails that got in.
+ */
+export async function fakeInvites(
+  page: Page,
+  invites: FakeInvite[],
+  options: { accountPassword?: string } = {},
+) {
+  const accountPassword = options.accountPassword ?? 'orchard-flow-password'
+  const state = {
+    invites: invites.map((invite) => ({ ...invite })),
+    calls: [] as { path: string; body: Record<string, unknown> }[],
+    joined: [] as string[],
+    paused: false,
+  }
+
+  await page.route(
+    (url) =>
+      url.port === String(flowApiPort) && /^\/invitations\/(lookup|accept)$/.test(url.pathname),
+    (route, request) => {
+      const { pathname } = new URL(request.url())
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>
+      state.calls.push({ path: pathname, body })
+
+      const invite = state.invites.find((item) => item.token === body.token)
+      if (!invite) {
+        return fulfill(route, 404, {
+          statusCode: 404,
+          message: 'This invite is no longer valid. Ask for a new one.',
+        })
+      }
+      if (pathname === '/invitations/lookup') {
+        return fulfill(route, 200, {
+          site: { name: invite.siteName },
+          role: { name: invite.roleName },
+          email: invite.email,
+          hasAccount: invite.hasAccount,
+          expiresAt: inDays(7),
+        })
+      }
+
+      const password = typeof body.password === 'string' ? body.password : ''
+      let name = person.name
+      if (invite.hasAccount) {
+        if (state.paused) {
+          return fulfill(route, 429, {
+            statusCode: 429,
+            error: 'Too Many Requests',
+            message: 'Too many sign-in attempts. Try again in 15 minutes.',
+          })
+        }
+        if (password !== accountPassword) {
+          return body.name === undefined
+            ? fulfill(route, 401, { statusCode: 401, message: 'Invalid email or password' })
+            : fulfill(route, 409, {
+                statusCode: 409,
+                message: 'This email already has an account. Sign in to join.',
+              })
+        }
+      } else {
+        const typed = typeof body.name === 'string' ? body.name.trim() : ''
+        const errors = [
+          ...(typed === '' || typed.length > 100 ? ['name: Enter a name of 1 to 100 characters'] : []),
+          ...(password.length < 12 ? ['password: Use at least 12 characters'] : []),
+        ]
+        if (errors.length > 0) return fulfill(route, 400, { message: 'Invalid request', errors })
+        name = typed
+      }
+
+      state.joined.push(invite.email)
+      const joined: MockMembership = {
+        site: { ...orchard.site, id: '0198f2a0-0000-7000-8000-0000000000c1', name: invite.siteName },
+        role: siteRoles[invite.roleName],
+        permissions: permissionsOf[invite.roleName],
+        ownsOrganization: false,
+      }
+      return fulfill(route, 200, {
+        accessToken: `invited-${invite.token}`,
+        tokenType: 'Bearer',
+        expiresAt: inDays(7),
+        user: { id: '0198f2a0-0000-7000-8000-0000000000e1', email: invite.email, name },
+        memberships: [...(invite.alsoMemberOf ?? []), joined],
+      })
+    },
+  )
+  return state
+}
