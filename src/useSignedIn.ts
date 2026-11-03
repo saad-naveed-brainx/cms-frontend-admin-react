@@ -10,6 +10,7 @@ const CONTENT_PUBLISH_OWN = 'content.publish_own'
 const SETTINGS_MANAGE = 'settings.manage'
 const MEDIA_UPLOAD = 'media.upload'
 const CONTENT_TYPES_MANAGE = 'content_types.manage'
+const MEMBERS_MANAGE = 'members.manage'
 
 /** Who is signed in and what their role on the current site lets the screens offer. */
 export function useSignedIn() {
@@ -27,6 +28,7 @@ export function useSignedIn() {
       canManageSettings: false,
       canUpload: false,
       canManageTypes: false,
+      canManageMembers: false,
       mayEdit: (_createdBy: string | null) => false,
       mayPublish: (_createdBy: string | null) => false,
     }
@@ -53,6 +55,8 @@ export function useSignedIn() {
     canUpload: permissions.includes(MEDIA_UPLOAD),
     /** Making content types (D-043). */
     canManageTypes: permissions.includes(CONTENT_TYPES_MANAGE),
+    /** The site's people and invites (the Users screen). */
+    canManageMembers: permissions.includes(MEMBERS_MANAGE),
     /** Any page with `content.edit_any`; only the person's own pages with `content.edit_own`. */
     mayEdit: (createdBy: string | null) =>
       permissions.includes(CONTENT_EDIT_ANY) ||

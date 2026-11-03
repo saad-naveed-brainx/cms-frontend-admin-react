@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import type { Page, Request, Route } from '@playwright/test'
 import { flowApiPort } from '../flow/env.ts'
 
@@ -530,6 +531,382 @@ export async function fakeMedia(page: Page, initial: FakeMedia[] = []) {
         return fulfill(route, 201, item)
       }
       return fulfill(route, 404, { message: 'Not found' })
+    },
+  )
+  return state
+}
+
+// ---- the people of a site and their invitations (users-roles T5), for the Users screen ----
+
+/** The five roles every site has, in the order the API lists them (`ROLE_DEFINITIONS`). */
+export const siteRoles = {
+  Administrator: orchard.role,
+  Editor: { id: '0198f2a0-0000-7000-8000-0000000000d2', name: 'Editor' },
+  Author: { id: '0198f2a0-0000-7000-8000-0000000000d3', name: 'Author' },
+  Contributor: { id: '0198f2a0-0000-7000-8000-0000000000d4', name: 'Contributor' },
+  Viewer: { id: '0198f2a0-0000-7000-8000-0000000000d5', name: 'Viewer' },
+}
+
+export type RoleName = keyof typeof siteRoles
+
+/** One person as `GET /members` lists them (api/src/members/site-member.repository.ts). */
+export type FakeMember = {
+  userId: string
+  name: string
+  email: string
+  role: { id: string; name: string }
+  isOwner: boolean
+}
+
+/** One invitation as `GET /members` lists it (api/src/invitations/invitation.repository.ts). */
+export type FakeInvitation = {
+  id: string
+  email: string
+  role: { id: string; name: string }
+  expiresAt: string
+  expired: boolean
+  invitedBy: { id: string; name: string } | null
+  createdAt: string
+}
+
+/** A person on the site. `n` keeps ids apart; the email comes from the name unless given. */
+export function fakeMember(
+  n: number,
+  name: string,
+  role: RoleName,
+  fields: Partial<FakeMember> = {},
+): FakeMember {
+  return {
+    userId: `0198f2a0-0000-7000-8000-${String(2000 + n).padStart(12, '0')}`,
+    name,
+    email: `${name.toLowerCase()}@orchard.test`,
+    role: siteRoles[role],
+    isOwner: false,
+    ...fields,
+  }
+}
+
+/** A waiting invitation. `expiresAt` decides `expired`, as in the API's answer. */
+export function fakeInvitation(
+  n: number,
+  email: string,
+  role: RoleName,
+  expiresAt: string = inDays(7),
+): FakeInvitation {
+  return {
+    id: `0198f2a0-0000-7000-8000-${String(3000 + n).padStart(12, '0')}`,
+    email,
+    role: siteRoles[role],
+    expiresAt,
+    expired: Date.parse(expiresAt) <= Date.now(),
+    invitedBy: { id: person.id, name: person.name },
+    createdAt: new Date(Date.UTC(2026, 9, 1, 9, 0, n)).toISOString(),
+  }
+}
+
+/** Who may not lose `members.manage`, checked in the API's order (api/src/members/site-member.repository.ts). */
+function safetyRefusal(members: FakeMember[], member: FakeMember, keepsManage: boolean) {
+  if (keepsManage || member.role.id !== siteRoles.Administrator.id) return null
+  if (member.isOwner) return "The organisation's owner stays an Administrator."
+  const managers = members.filter((item) => item.role.id === siteRoles.Administrator.id)
+  return managers.length === 1 ? 'A site needs at least one Administrator.' : null
+}
+
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
+/**
+ * A stand-in for the Administrator's routes on people and invitations, with the rules the real ones
+ * apply: `GET /members`, `PATCH` and `DELETE /members/:userId`, `POST /invitations`,
+ * `POST /invitations/:id/renew` and `DELETE /invitations/:id`, each needing `members.manage` on the
+ * site in `X-Site-Id`. Changing or removing the signed-in person changes the session too, so the next
+ * `/auth/me` follows, as the real API's does.
+ *
+ * `calls` records every request, `tokens` every link secret answered (the API shows each once),
+ * `override` works as in `fakeContent`, and `hold()` keeps changes waiting until the function it
+ * returns is called, to see the screen while a request runs.
+ */
+export async function fakeMembers(
+  page: Page,
+  session: MockSession,
+  initial: { members: FakeMember[]; invitations?: FakeInvitation[] },
+) {
+  let held: Promise<void> | null = null
+  let made = 0
+  const state = {
+    members: initial.members.map((member) => ({ ...member })),
+    invitations: (initial.invitations ?? []).map((invitation) => ({ ...invitation })),
+    calls: [] as string[],
+    tokens: [] as string[],
+    override: null as Handler | null,
+    hold() {
+      // One hold at a time: a second would lose the first's release, and the test would hang.
+      if (held) throw new Error('hold() is already holding: call its release function first')
+      let release = () => {}
+      held = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      return () => {
+        held = null
+        release()
+      }
+    },
+  }
+
+  const issued = (invitation: FakeInvitation) => {
+    const token = randomBytes(32).toString('base64url')
+    state.tokens.push(token)
+    return { invitation, token }
+  }
+
+  await page.route(
+    (url) =>
+      url.port === String(flowApiPort) && /^\/(members|invitations)(\/|$)/.test(url.pathname),
+    async (route, request) => {
+      const { pathname } = new URL(request.url())
+      const method = request.method()
+      state.calls.push(`${method} ${pathname}`)
+      if (state.override && (await state.override(route, request))) return
+      if (method !== 'GET' && held) await held
+
+      const siteId = request.headers()['x-site-id']
+      if (!siteId) {
+        return fulfill(route, 400, {
+          statusCode: 400,
+          message: 'X-Site-Id must be the id of one site (a uuid)',
+        })
+      }
+      const membership = session.memberships.find((item) => item.site.id === siteId)
+      if (!membership?.permissions.includes('members.manage')) {
+        return fulfill(route, 403, { statusCode: 403, message: 'Forbidden' })
+      }
+
+      if (pathname === '/members' && method === 'GET') {
+        return fulfill(route, 200, {
+          roles: Object.values(siteRoles),
+          members: [...state.members].sort(
+            (a, b) => a.name.localeCompare(b.name) || a.userId.localeCompare(b.userId),
+          ),
+          invitations: [...state.invitations].sort((a, b) =>
+            b.createdAt.localeCompare(a.createdAt),
+          ),
+        })
+      }
+
+      const oneMember = pathname.match(/^\/members\/([^/]+)$/)
+      if (oneMember && (method === 'PATCH' || method === 'DELETE')) {
+        const member = state.members.find((item) => item.userId === oneMember[1])
+        if (!member) {
+          return fulfill(route, 404, { statusCode: 404, message: 'Not a member of this site' })
+        }
+        if (method === 'DELETE') {
+          const refusal = safetyRefusal(state.members, member, false)
+          if (refusal) return fulfill(route, 409, { statusCode: 409, message: refusal })
+          state.members = state.members.filter((item) => item !== member)
+          if (member.userId === person.id) {
+            session.memberships = session.memberships.filter((item) => item !== membership)
+          }
+          return route.fulfill({ status: 204 })
+        }
+
+        const { roleId } = request.postDataJSON() as { roleId: string }
+        const role = Object.values(siteRoles).find((item) => item.id === roleId)
+        if (!role) {
+          return fulfill(route, 400, {
+            statusCode: 400,
+            message: "That role is not one of this site's roles.",
+          })
+        }
+        if (role.id !== member.role.id) {
+          const keepsManage = role.id === siteRoles.Administrator.id
+          const refusal = safetyRefusal(state.members, member, keepsManage)
+          if (refusal) return fulfill(route, 409, { statusCode: 409, message: refusal })
+          member.role = role
+          if (member.userId === person.id) {
+            membership.role = role
+            if (!keepsManage) {
+              membership.permissions = membership.permissions.filter(
+                (permission) => permission !== 'members.manage',
+              )
+            }
+          }
+        }
+        return fulfill(route, 200, member)
+      }
+
+      if (pathname === '/invitations' && method === 'POST') {
+        const body = request.postDataJSON() as { email?: unknown; roleId?: unknown }
+        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+        if (!EMAIL.test(email) || email.length > 254) {
+          return fulfill(route, 400, {
+            message: 'Invalid request',
+            errors: ['email: Invalid email address'],
+          })
+        }
+        const role = Object.values(siteRoles).find((item) => item.id === body.roleId)
+        if (!role) {
+          return fulfill(route, 400, {
+            message: 'Invalid request',
+            errors: ["roleId: That role is not one of this site's roles."],
+          })
+        }
+        if (state.members.some((member) => member.email === email)) {
+          return fulfill(route, 409, {
+            statusCode: 409,
+            message: `${email} is already a member of this site.`,
+          })
+        }
+        // A waiting invite for the same email is replaced: a new row, link, role and expiry.
+        made += 1
+        const invitation: FakeInvitation = {
+          ...fakeInvitation(100 + made, email, 'Viewer'),
+          role,
+          createdAt: new Date().toISOString(),
+        }
+        state.invitations = [
+          invitation,
+          ...state.invitations.filter((item) => item.email !== email),
+        ]
+        return fulfill(route, 201, issued(invitation))
+      }
+
+      const renewing = pathname.match(/^\/invitations\/([^/]+)\/renew$/)
+      if (renewing && method === 'POST') {
+        const invitation = state.invitations.find((item) => item.id === renewing[1])
+        if (!invitation) {
+          return fulfill(route, 404, { statusCode: 404, message: 'Invitation not found' })
+        }
+        invitation.expiresAt = inDays(7)
+        invitation.expired = false
+        return fulfill(route, 200, issued(invitation))
+      }
+
+      const oneInvitation = pathname.match(/^\/invitations\/([^/]+)$/)
+      if (oneInvitation && method === 'DELETE') {
+        const invitation = state.invitations.find((item) => item.id === oneInvitation[1])
+        if (!invitation) {
+          return fulfill(route, 404, { statusCode: 404, message: 'Invitation not found' })
+        }
+        state.invitations = state.invitations.filter((item) => item !== invitation)
+        return route.fulfill({ status: 204 })
+      }
+
+      return fulfill(route, 404, { message: 'Not found' })
+    },
+  )
+  return state
+}
+
+// ---- the page an invite link opens (users-roles T7) ----
+
+/** A link as the stand-in knows it: `token` is the secret after the `#` of `/invite#<token>`. */
+export type FakeInvite = {
+  token: string
+  siteName: string
+  roleName: RoleName
+  email: string
+  hasAccount: boolean
+  /** Sites an existing account already belongs to; they come before the new one in its answer. */
+  alsoMemberOf?: MockMembership[]
+}
+
+/** What each role holds, in short (the real lists are `ROLE_DEFINITIONS` in api/src/auth/roles.ts). */
+const permissionsOf: Record<RoleName, string[]> = {
+  Administrator: ['content.create', 'content.edit_any', 'content.edit_own', 'members.manage'],
+  Editor: ['content.create', 'content.edit_any', 'content.edit_own', 'content.publish'],
+  Author: ['content.create', 'content.edit_own', 'content.publish_own', 'media.upload'],
+  Contributor: ['content.create', 'content.edit_own'],
+  Viewer: [],
+}
+
+/**
+ * A stand-in for the two open routes behind the invite page, with the real ones' rules
+ * (api/src/invitations/): `POST /invitations/lookup` says what a link is for and `POST
+ * /invitations/accept` joins. A new email needs a name and a password of at least 12 characters (else
+ * a 400 that names the field); an existing account needs its password: a wrong one is a 401, or a 409
+ * when a name came with it (the account appeared after the page opened). A link it does not know is
+ * the one 404 every dead link gets. While `paused` is set, an existing account's accept is the
+ * sign-in limit's 429. `calls` records each request's body and `joined` the emails that got in.
+ */
+export async function fakeInvites(
+  page: Page,
+  invites: FakeInvite[],
+  options: { accountPassword?: string } = {},
+) {
+  const accountPassword = options.accountPassword ?? 'orchard-flow-password'
+  const state = {
+    invites: invites.map((invite) => ({ ...invite })),
+    calls: [] as { path: string; body: Record<string, unknown> }[],
+    joined: [] as string[],
+    paused: false,
+  }
+
+  await page.route(
+    (url) =>
+      url.port === String(flowApiPort) && /^\/invitations\/(lookup|accept)$/.test(url.pathname),
+    (route, request) => {
+      const { pathname } = new URL(request.url())
+      const body = (request.postDataJSON() ?? {}) as Record<string, unknown>
+      state.calls.push({ path: pathname, body })
+
+      const invite = state.invites.find((item) => item.token === body.token)
+      if (!invite) {
+        return fulfill(route, 404, {
+          statusCode: 404,
+          message: 'This invite is no longer valid. Ask for a new one.',
+        })
+      }
+      if (pathname === '/invitations/lookup') {
+        return fulfill(route, 200, {
+          site: { name: invite.siteName },
+          role: { name: invite.roleName },
+          email: invite.email,
+          hasAccount: invite.hasAccount,
+          expiresAt: inDays(7),
+        })
+      }
+
+      const password = typeof body.password === 'string' ? body.password : ''
+      let name = person.name
+      if (invite.hasAccount) {
+        if (state.paused) {
+          return fulfill(route, 429, {
+            statusCode: 429,
+            error: 'Too Many Requests',
+            message: 'Too many sign-in attempts. Try again in 15 minutes.',
+          })
+        }
+        if (password !== accountPassword) {
+          return body.name === undefined
+            ? fulfill(route, 401, { statusCode: 401, message: 'Invalid email or password' })
+            : fulfill(route, 409, {
+                statusCode: 409,
+                message: 'This email already has an account. Sign in to join.',
+              })
+        }
+      } else {
+        const typed = typeof body.name === 'string' ? body.name.trim() : ''
+        const errors = [
+          ...(typed === '' || typed.length > 100 ? ['name: Enter a name of 1 to 100 characters'] : []),
+          ...(password.length < 12 ? ['password: Use at least 12 characters'] : []),
+        ]
+        if (errors.length > 0) return fulfill(route, 400, { message: 'Invalid request', errors })
+        name = typed
+      }
+
+      state.joined.push(invite.email)
+      const joined: MockMembership = {
+        site: { ...orchard.site, id: '0198f2a0-0000-7000-8000-0000000000c1', name: invite.siteName },
+        role: siteRoles[invite.roleName],
+        permissions: permissionsOf[invite.roleName],
+        ownsOrganization: false,
+      }
+      return fulfill(route, 200, {
+        accessToken: `invited-${invite.token}`,
+        tokenType: 'Bearer',
+        expiresAt: inDays(7),
+        user: { id: '0198f2a0-0000-7000-8000-0000000000e1', email: invite.email, name },
+        memberships: [...(invite.alsoMemberOf ?? []), joined],
+      })
     },
   )
   return state

@@ -81,5 +81,14 @@ export const typer = {
   tenant: { organization: 'Type Works', site: 'Type Studio', host: 'types.test' },
 }
 
+/**
+ * A ninth person, who invites someone on the Users screen and sees them join (users-roles T7). Her
+ * site gains a member and a page by someone else, so no other test uses her.
+ */
+export const inviter = {
+  admin: { email: 'ola@invite.test', name: 'Ola Invite', password: 'invite-flow-password' },
+  tenant: { organization: 'Invite House Ltd', site: 'Invite House', host: 'invite.test' },
+}
+
 /** Everyone with a site of their own, each made by the real seed command. */
-export const people = [solo, maker, finisher, stylist, greeter, remover, typer]
+export const people = [solo, maker, finisher, stylist, greeter, remover, typer, inviter]

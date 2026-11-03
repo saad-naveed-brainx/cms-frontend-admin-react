@@ -50,13 +50,14 @@ export default function SignIn({ notice }: Props) {
 
     inFlight.current = true
     setBusy(true)
-    const outcome = await signIn(tidyEmail, password)
+    const result = await signIn(tidyEmail, password)
     inFlight.current = false
-    if (outcome === 'ok') return // this screen is replaced by the app
+    if (result.outcome === 'ok') return // this screen is replaced by the app
 
+    // A pause says how long in the API's own words; what was typed in the email box stays.
     setBusy(false)
     setPassword('')
-    setFormError(FAILURES[outcome])
+    setFormError(result.outcome === 'paused' ? result.message : FAILURES[result.outcome])
     passwordInput.current?.focus()
   }
 

@@ -11,9 +11,11 @@ import {
   Pin,
   Plus,
   Shapes,
+  Users as UsersIcon,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router'
+import AddUser from './AddUser.tsx'
 import type { Membership, User } from './api.ts'
 import Appearance from './Appearance.tsx'
 import ContentTypes from './ContentTypes.tsx'
@@ -32,13 +34,14 @@ import { selectSite, signOut } from './session.ts'
 import { external, siteUrl } from './site-links.ts'
 import Sites from './Sites.tsx'
 import { useSignedIn } from './useSignedIn.ts'
+import Users from './Users.tsx'
 
 type Props = { user: User; memberships: Membership[]; siteId: string | null }
 
 /**
  * The signed-in frame, laid out as WordPress lays out its admin: a dark bar across the top (the site
  * you are working on, New site for organisation owners, who you are) and a dark menu down the left. The menu offers only what
- * works: the Dashboard, one entry per content type of the site, Media, Content types, Appearance and Sites.
+ * works: the Dashboard, one entry per content type of the site, Media, Content types, Appearance, Users and Sites.
  */
 export default function Shell({ user, memberships, siteId }: Props) {
   const location = useLocation()
@@ -139,6 +142,8 @@ export default function Shell({ user, memberships, siteId }: Props) {
               <Route path="/media" element={<Media key={current.site.id} />} />
               <Route path="/types" element={<ContentTypes key={current.site.id} />} />
               <Route path="/appearance" element={<Appearance key={current.site.id} />} />
+              <Route path="/users" element={<Users key={current.site.id} />} />
+              <Route path="/users/new" element={<AddUser key={current.site.id} />} />
             </>
           )}
           <Route path="*" element={current ? <NotFound /> : <NoSites />} />
@@ -159,7 +164,7 @@ type Entry = {
 /** The left menu. Keyed by site by its parent, so another site's content types are loaded afresh. */
 function AdminMenu({ hasSite }: { hasSite: boolean }) {
   const location = useLocation()
-  const { canCreate, canManageSettings, canManageTypes } = useSignedIn()
+  const { canCreate, canManageMembers, canManageSettings, canManageTypes } = useSignedIn()
   // null: the types could not be loaded, so one entry lists every type instead.
   const [types, setTypes] = useState<PageType[] | null | undefined>(undefined)
 
@@ -240,6 +245,16 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
         to: '/appearance',
         icon: Palette,
         current: path === '/appearance',
+        sub: [],
+      })
+    }
+    // The site's people, for Administrators (the API decides, invariant 3).
+    if (canManageMembers) {
+      entries.push({
+        label: 'Users',
+        to: '/users',
+        icon: UsersIcon,
+        current: path.startsWith('/users'),
         sub: [],
       })
     }

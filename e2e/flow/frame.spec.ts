@@ -22,7 +22,7 @@ test('[UC-BE-06] the menu has an entry per real content type, each listing its o
   await signInThroughTheScreen(page)
   await openSite(page, api.siteId)
   const menu = page.getByRole('navigation', { name: 'Main' })
-  // An administrator also has Appearance (settings.manage, GOV-04).
+  // An administrator also has Appearance (settings.manage, GOV-04) and Users (members.manage).
   await expect(menu.locator('.menu-top')).toHaveText([
     'Dashboard',
     'Pages',
@@ -30,6 +30,7 @@ test('[UC-BE-06] the menu has an entry per real content type, each listing its o
     'Media',
     'Content types',
     'Appearance',
+    'Users',
     'Sites',
   ])
 
