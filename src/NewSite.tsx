@@ -1,29 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { describeSiteFailure, savedAddress, tidyAddress } from './helpers.ts'
 import { reloadProfile } from './session.ts'
 import { onThisComputer, siteDomain } from './site-links.ts'
 import { createSite, fetchOrganizations } from './sites-api.ts'
 import type { Organization } from './sites-api.ts'
+import { useSignedIn } from './useSignedIn.ts'
 
 const MAX_ADDRESSES = 10
 
-/** The organisations the person owns, or null when they could not be loaded; which load attempt it answers is kept with it. */
+/** The organizations the person owns, or null when they could not be loaded; which load attempt it answers is kept with it. */
 type OrganizationsAnswer = { attempt: number; items: Organization[] | null }
 
 /**
- * Name and web addresses (and which organisation, only when the person owns several). Creating the
- * site makes them its administrator, and the admin then switches to it.
+ * Name and web addresses (and which organization, only when the person owns several: the one being
+ * worked in, or the one a link names with `?organization=`, is already chosen). Creating the site
+ * makes them its administrator, and the admin then switches to it.
  */
 export default function NewSite() {
   const navigate = useNavigate()
+  const { organizationId: workingIn } = useSignedIn()
+  const [params] = useSearchParams()
 
   const [answer, setAnswer] = useState<OrganizationsAnswer | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [name, setName] = useState('')
   const [addresses, setAddresses] = useState([''])
-  const [organizationId, setOrganizationId] = useState('')
+  /** What the person chose in the organization box; null until they do. */
+  const [picked, setPicked] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -71,7 +76,7 @@ export default function NewSite() {
       <main>
         <h1>New site</h1>
         <div className="problem">
-          <p role="alert">Couldn't load your organisations.</p>
+          <p role="alert">Couldn't load your organizations.</p>
           <button type="button" onClick={() => setAttempt((count) => count + 1)}>
             Try again
           </button>
@@ -93,12 +98,16 @@ export default function NewSite() {
     return (
       <main>
         <h1>New site</h1>
-        <p role="status">Only the owner of an organisation can create sites.</p>
+        <p role="status">Only the owner of an organization can create sites.</p>
       </main>
     )
   }
 
   const mustChoose = organizations.length > 1
+  // Opens on the organization the link names, else the one being worked in, when it is theirs to add to.
+  const wanted = params.get('organization') ?? workingIn
+  const organizationId =
+    picked ?? (organizations.some((item) => item.id === wanted) ? (wanted ?? '') : '')
   // On this computer `.localhost` is added to every address, so the browser can open the site (D-038).
   const local = onThisComputer()
 
@@ -127,7 +136,7 @@ export default function NewSite() {
           index === 0 ? 'Enter a web address.' : 'Enter a web address or remove this one.'
       }
     })
-    if (mustChoose && organizationId === '') found.organizationId = 'Choose an organisation.'
+    if (mustChoose && organizationId === '') found.organizationId = 'Choose an organization.'
     setErrors(found)
     setFormError(null)
     if (Object.keys(found).length > 0) {
@@ -162,7 +171,7 @@ export default function NewSite() {
     }
   }
 
-  /** Puts the cursor on the first field that has a message: name, then the addresses in order, then the organisation. */
+  /** Puts the cursor on the first field that has a message: name, then the addresses in order, then the organization. */
   function focusFirst(fields: Record<string, string>) {
     const row = addresses.findIndex((_, index) => fields[`hostnames.${index}`] !== undefined)
     if (fields.name) nameInput.current?.focus()
@@ -278,16 +287,16 @@ export default function NewSite() {
         )}
         {mustChoose && (
           <div className="field">
-            <label htmlFor="organization">Organisation</label>
+            <label htmlFor="organization">Organization</label>
             <select
               id="organization"
               ref={organizationSelect}
               value={organizationId}
-              onChange={(event) => setOrganizationId(event.target.value)}
+              onChange={(event) => setPicked(event.target.value)}
               aria-invalid={errors.organizationId !== undefined}
               aria-describedby={errors.organizationId ? 'organization-error' : undefined}
             >
-              <option value="">Choose an organisation</option>
+              <option value="">Choose an organization</option>
               {organizations.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}

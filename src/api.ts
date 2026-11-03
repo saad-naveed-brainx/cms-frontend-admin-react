@@ -9,16 +9,32 @@ export type User = { id: string; email: string; name: string }
 export type Membership = {
   /**
    * `primaryHost` is the site's main web address (`cafe.example.com`), for links to the website;
-   * `theme` is its stored theme as it is (`{}` for a new site), for the live preview.
+   * `theme` is its stored theme as it is (`{}` for a new site), for the live preview;
+   * `organizationId` is the organization it belongs to (organizations T1): an API that predates
+   * organizations leaves it out, together with `Profile.organizations`.
    */
-  site: { id: string; name: string; primaryHost: string | null; theme?: unknown }
+  site: {
+    id: string
+    name: string
+    organizationId?: string
+    primaryHost: string | null
+    theme?: unknown
+  }
   role: { id: string; name: string }
   permissions: string[]
-  /** Whether the person owns the site's organisation, so may delete the site (D-039). Absent means no. */
+  /** Whether the person owns the site's organization, so may delete the site (D-039). Absent means no. */
   ownsOrganization?: boolean
 }
 
-export type Profile = { user: User; memberships: Membership[] }
+/** An organization the person owns or has a website in; one they own with no website yet is listed too. */
+export type OrganizationSummary = { id: string; name: string; ownsOrganization: boolean }
+
+export type Profile = {
+  user: User
+  memberships: Membership[]
+  /** Absent from an API that predates organizations: nothing about organizations is shown then. */
+  organizations?: OrganizationSummary[]
+}
 
 export type LoginResult = Profile & {
   accessToken: string
@@ -137,12 +153,31 @@ function isMembership(value: unknown): value is Membership {
   )
 }
 
+function isOrganizationSummary(value: unknown): value is OrganizationSummary {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.ownsOrganization === 'boolean'
+  )
+}
+
+/**
+ * `organizations` is optional (an API that predates them), but when it is there it must be usable
+ * and every website must say which organization it is in: half an answer is no answer.
+ */
 export function isProfile(value: unknown): value is Profile {
   return (
     isRecord(value) &&
     isUser(value.user) &&
     Array.isArray(value.memberships) &&
-    value.memberships.every(isMembership)
+    value.memberships.every(isMembership) &&
+    (value.organizations === undefined ||
+      (Array.isArray(value.organizations) &&
+        value.organizations.every(isOrganizationSummary) &&
+        (value.memberships as Membership[]).every(
+          (membership) => typeof membership.site.organizationId === 'string',
+        )))
   )
 }
 

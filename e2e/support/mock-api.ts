@@ -11,6 +11,7 @@ import { flowApiPort } from '../flow/env.ts'
 
 export const SESSION_KEY = 'cms-admin.session'
 export const SITE_KEY = 'cms-admin.site'
+export const ORGANIZATION_KEY = 'cms-admin.org'
 
 export const person = {
   id: '0198f2a0-0000-7000-8000-0000000000f1',
@@ -44,17 +45,37 @@ export const maple = {
 export const inDays = (days: number): string =>
   new Date(Date.now() + days * 86_400_000).toISOString()
 
-export const profileBody = (memberships = [orchard, maple]) => ({ user: person, memberships })
+/** An organization as `/auth/me` and sign-in list it (organizations T1). */
+export type MockOrganization = { id: string; name: string; ownsOrganization: boolean }
 
-export const loginBody = (memberships = [orchard, maple]) => ({
+/**
+ * The profile as the API answers it. Without `organizations` it is the API before organizations (no
+ * `organizations`, no `organizationId` on a site): the admin then shows the flat Site switcher, and
+ * every test written before organizations runs against that answer (UC-OR-18).
+ */
+export const profileBody = (
+  memberships = [orchard, maple],
+  organizations?: MockOrganization[],
+) => ({
+  user: person,
+  memberships,
+  ...(organizations === undefined ? {} : { organizations }),
+})
+
+export const loginBody = (memberships = [orchard, maple], organizations?: MockOrganization[]) => ({
   accessToken: 'mock-access-token',
   tokenType: 'Bearer',
   expiresAt: inDays(7),
-  ...profileBody(memberships),
+  ...profileBody(memberships, organizations),
 })
 
 /** Answers a call with a status and a body. The API is another origin, so the answer says it may be read. */
-export function fulfill(route: Route, status: number, body: unknown, contentType = 'application/json') {
+export function fulfill(
+  route: Route,
+  status: number,
+  body: unknown,
+  contentType = 'application/json',
+) {
   return route.fulfill({
     status,
     contentType,
@@ -209,7 +230,10 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
       }
       if (url.pathname === '/content-types' && method === 'POST') {
         const body = request.postDataJSON() as { name: string; urlPrefix: string }
-        const slug = body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        const slug = body.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
         const same = state.types.find((type) => type.slug === slug)
         if (same) {
           return fulfill(route, 409, {
@@ -257,7 +281,8 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
           blocks?: unknown[]
         }
         const type = state.types.find((item) => item.slug === body.type)
-        if (!type) return fulfill(route, 400, { message: 'Invalid request', errors: ['type: unknown'] })
+        if (!type)
+          return fulfill(route, 400, { message: 'Invalid request', errors: ['type: unknown'] })
         const created = fakePage(state.pages.length + 100, {
           type: typeRef(type),
           title: body.title,
@@ -299,9 +324,18 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
 
 /** What the mock `/auth/me` answers with. A test can change it while the page is open. */
 /** A membership as `/auth/me` answers; `ownsOrganization` says the person may delete the site (D-039). */
-export type MockMembership = typeof orchard & { ownsOrganization?: boolean }
+export type MockMembership = typeof orchard & {
+  /** The organization the site belongs to, as the API names it since organizations T1. */
+  site: { organizationId?: string }
+  ownsOrganization?: boolean
+}
 
-export type MockSession = { memberships: MockMembership[]; meFails: boolean }
+/** `organizations` left out is the API before organizations (see `profileBody`). */
+export type MockSession = {
+  memberships: MockMembership[]
+  organizations?: MockOrganization[]
+  meFails: boolean
+}
 
 /**
  * Opens the app signed in as the mock person, on one site (or, with `sites: false`, on none), with
@@ -327,10 +361,40 @@ export async function signedInAs(
   await page.route('**/auth/me', (route) =>
     session.meFails
       ? route.abort('connectionrefused')
-      : fulfill(route, 200, profileBody(session.memberships)),
+      : fulfill(route, 200, profileBody(session.memberships, session.organizations)),
   )
   await seedStorage(page, {
     [SESSION_KEY]: JSON.stringify({ accessToken: 'saved-token', expiresAt: inDays(1) }),
+  })
+  return session
+}
+
+/**
+ * Opens the app signed in as the mock person with exactly these memberships and organizations (leave
+ * `organizations` out for the API before them), and anything already in the browser's storage, such
+ * as the organization or site last used. Returns the session the mock `/auth/me` answers from.
+ */
+export async function signedInWith(
+  page: Page,
+  options: {
+    memberships: MockMembership[]
+    organizations?: MockOrganization[]
+    storage?: Record<string, string>
+  },
+): Promise<MockSession> {
+  const session: MockSession = {
+    memberships: options.memberships,
+    organizations: options.organizations,
+    meFails: false,
+  }
+  await page.route('**/auth/me', (route) =>
+    session.meFails
+      ? route.abort('connectionrefused')
+      : fulfill(route, 200, profileBody(session.memberships, session.organizations)),
+  )
+  await seedStorage(page, {
+    [SESSION_KEY]: JSON.stringify({ accessToken: 'saved-token', expiresAt: inDays(1) }),
+    ...options.storage,
   })
   return session
 }
@@ -349,9 +413,10 @@ export const orchardSecond = {
 type SiteBody = { name: string; hostnames: string[]; organizationId?: string }
 
 /**
- * A stand-in for the routes that create a site. A successful `POST /sites` is recorded in `posted`
- * and adds the site to the session, so the next `/auth/me` lists it, as the real API does.
- * `override` works as in `fakeContent`.
+ * A stand-in for the routes that create a site or an organization. A successful `POST /sites` is
+ * recorded in `posted` and adds the site to the session, so the next `/auth/me` lists it, as the real
+ * API does; a successful `POST /organizations` (organizations T2) is recorded in `createdOrganizations`,
+ * added to `organizations` and to the session's. `override` works as in `fakeContent`.
  */
 export async function fakeSites(
   page: Page,
@@ -360,6 +425,8 @@ export async function fakeSites(
 ) {
   const state = {
     posted: [] as SiteBody[],
+    /** The names sent to `POST /organizations`, in order, as sent. */
+    createdOrganizations: [] as string[],
     /** The ids of the sites deleted, in order (D-039). */
     deleted: [] as string[],
     calls: [] as string[],
@@ -384,6 +451,20 @@ export async function fakeSites(
         return route.fulfill({ status: 204 })
       }
       if (method === 'GET') return fulfill(route, 200, { items: organizations })
+      if (method === 'POST' && new URL(request.url()).pathname === '/organizations') {
+        const { name } = request.postDataJSON() as { name: string }
+        state.createdOrganizations.push(name)
+        const organization = {
+          id: `0198f2a0-0000-7000-8000-${String(800 + organizations.length).padStart(12, '0')}`,
+          name: name.trim(),
+        }
+        organizations.push(organization)
+        session.organizations?.push({ ...organization, ownsOrganization: true })
+        session.organizations?.sort(
+          (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+        )
+        return fulfill(route, 201, organization)
+      }
       if (method === 'POST') {
         const body = request.postDataJSON() as SiteBody
         state.posted.push(body)
@@ -394,6 +475,7 @@ export async function fakeSites(
           name: body.name,
           primaryHost: body.hostnames[0] ?? null,
           theme: {},
+          ...(session.organizations ? { organizationId: organization.id } : {}),
         }
         const membership = {
           site,
@@ -802,6 +884,12 @@ export async function fakeMembers(
 export type FakeInvite = {
   token: string
   siteName: string
+  /**
+   * The site's id and its organization, as the lookup answers them since organizations T1. Left out, the
+   * lookup answers as the API did before (no ids), and the joined site gets the stand-in's one id.
+   */
+  siteId?: string
+  organization?: { id: string; name: string }
   roleName: RoleName
   email: string
   hasAccount: boolean
@@ -824,8 +912,13 @@ const permissionsOf: Record<RoleName, string[]> = {
  * /invitations/accept` joins. A new email needs a name and a password of at least 12 characters (else
  * a 400 that names the field); an existing account needs its password: a wrong one is a 401, or a 409
  * when a name came with it (the account appeared after the page opened). A link it does not know is
- * the one 404 every dead link gets. While `paused` is set, an existing account's accept is the
- * sign-in limit's 429. `calls` records each request's body and `joined` the emails that got in.
+ * the one 404 every dead link gets, which an invite is once it has been accepted (the real API uses it
+ * up). While `paused` is set, an existing account's accept is the sign-in limit's 429. `calls` records
+ * each request's body and `joined` the emails that got in.
+ *
+ * A link of several websites is several invites for one email (organizations T8): an account made by
+ * the first accept is the account of the others, which then want its password and no name, and each
+ * accept answers with every website that email has joined so far.
  */
 export async function fakeInvites(
   page: Page,
@@ -838,6 +931,13 @@ export async function fakeInvites(
     calls: [] as { path: string; body: Record<string, unknown> }[],
     joined: [] as string[],
     paused: false,
+    /** What each email has joined through this stand-in, in order. */
+    sites: new Map<
+      string,
+      { membership: MockMembership; organization?: FakeInvite['organization'] }[]
+    >(),
+    /** The accounts made here, by email: their later accepts send the password and are answered with the name. */
+    accounts: new Map<string, { password: string; name: string }>(),
   }
 
   await page.route(
@@ -857,7 +957,11 @@ export async function fakeInvites(
       }
       if (pathname === '/invitations/lookup') {
         return fulfill(route, 200, {
-          site: { name: invite.siteName },
+          site: {
+            ...(invite.siteId === undefined ? {} : { id: invite.siteId }),
+            name: invite.siteName,
+          },
+          ...(invite.organization === undefined ? {} : { organization: invite.organization }),
           role: { name: invite.roleName },
           email: invite.email,
           hasAccount: invite.hasAccount,
@@ -866,7 +970,8 @@ export async function fakeInvites(
       }
 
       const password = typeof body.password === 'string' ? body.password : ''
-      let name = person.name
+      const made = state.accounts.get(invite.email)
+      let name = made?.name ?? person.name
       if (invite.hasAccount) {
         if (state.paused) {
           return fulfill(route, 429, {
@@ -875,7 +980,7 @@ export async function fakeInvites(
             message: 'Too many sign-in attempts. Try again in 15 minutes.',
           })
         }
-        if (password !== accountPassword) {
+        if (password !== (made?.password ?? accountPassword)) {
           return body.name === undefined
             ? fulfill(route, 401, { statusCode: 401, message: 'Invalid email or password' })
             : fulfill(route, 409, {
@@ -886,7 +991,9 @@ export async function fakeInvites(
       } else {
         const typed = typeof body.name === 'string' ? body.name.trim() : ''
         const errors = [
-          ...(typed === '' || typed.length > 100 ? ['name: Enter a name of 1 to 100 characters'] : []),
+          ...(typed === '' || typed.length > 100
+            ? ['name: Enter a name of 1 to 100 characters']
+            : []),
           ...(password.length < 12 ? ['password: Use at least 12 characters'] : []),
         ]
         if (errors.length > 0) return fulfill(route, 400, { message: 'Invalid request', errors })
@@ -895,17 +1002,123 @@ export async function fakeInvites(
 
       state.joined.push(invite.email)
       const joined: MockMembership = {
-        site: { ...orchard.site, id: '0198f2a0-0000-7000-8000-0000000000c1', name: invite.siteName },
+        site: {
+          ...orchard.site,
+          id: invite.siteId ?? '0198f2a0-0000-7000-8000-0000000000c1',
+          name: invite.siteName,
+          ...(invite.organization === undefined ? {} : { organizationId: invite.organization.id }),
+        },
         role: siteRoles[invite.roleName],
         permissions: permissionsOf[invite.roleName],
         ownsOrganization: false,
       }
+      const sofar = [
+        ...(state.sites.get(invite.email) ?? []),
+        { membership: joined, organization: invite.organization },
+      ]
+      state.sites.set(invite.email, sofar)
+
+      // The invite is used up; an account made now is the account of the same email's other invites.
+      state.invites.splice(state.invites.indexOf(invite), 1)
+      if (!invite.hasAccount) {
+        state.accounts.set(invite.email, { password, name })
+        for (const other of state.invites) if (other.email === invite.email) other.hasAccount = true
+      }
+
+      const organizations = [
+        ...new Map(
+          sofar.flatMap(({ organization }) =>
+            organization ? [[organization.id, organization]] : [],
+          ),
+        ).values(),
+      ].map((organization) => ({ ...organization, ownsOrganization: false }))
       return fulfill(route, 200, {
         accessToken: `invited-${invite.token}`,
         tokenType: 'Bearer',
         expiresAt: inDays(7),
         user: { id: '0198f2a0-0000-7000-8000-0000000000e1', email: invite.email, name },
-        memberships: [...(invite.alsoMemberOf ?? []), joined],
+        memberships: [...(invite.alsoMemberOf ?? []), ...sofar.map(({ membership }) => membership)],
+        ...(organizations.length > 0 ? { organizations } : {}),
+      })
+    },
+  )
+  return state
+}
+
+// ---- the company team (organizations T3, T7) ----
+
+export type FakeTeam = {
+  organization: { id: string; name: string }
+  websites: { id: string; name: string; roles: { id: string; name: string }[] }[]
+  people: {
+    userId: string
+    name: string
+    email: string
+    isOwner: boolean
+    access: { siteId: string; role: { id: string; name: string } }[]
+  }[]
+  invitations: {
+    id: string
+    email: string
+    siteId: string
+    role: { id: string; name: string }
+    expiresAt: string
+    expired: boolean
+  }[]
+}
+
+/**
+ * A stand-in for `GET /organizations/:id/team` and for `POST /invitations` on any of the organization's
+ * websites (the site is the `X-Site-Id` header). `posted` records each invitation asked for, in order;
+ * a successful one is added to the team's waiting invitations (replacing a waiting one for the same
+ * website and email) and answered with a link secret `secret-N`. `override` works as in `fakeContent`.
+ */
+export async function fakeTeam(page: Page, initial: FakeTeam) {
+  const state = {
+    team: initial,
+    calls: [] as string[],
+    posted: [] as { siteId: string; email: string; roleId: string }[],
+    /** When the invitations it makes expire (an ISO time); 7 days from now when left out. */
+    expiresAt: null as string | null,
+    override: null as Handler | null,
+  }
+
+  await page.route(
+    (url) =>
+      url.port === String(flowApiPort) &&
+      (/^\/organizations\/[^/]+\/team$/.test(url.pathname) || url.pathname === '/invitations'),
+    async (route, request) => {
+      const { pathname } = new URL(request.url())
+      state.calls.push(`${request.method()} ${pathname}`)
+      if (state.override && (await state.override(route, request))) return
+
+      if (request.method() === 'GET') return fulfill(route, 200, state.team)
+
+      const siteId = request.headers()['x-site-id'] ?? ''
+      const { email, roleId } = request.postDataJSON() as { email: string; roleId: string }
+      state.posted.push({ siteId, email, roleId })
+      const role = state.team.websites
+        .find((website) => website.id === siteId)
+        ?.roles.find((one) => one.id === roleId)
+      if (!role)
+        return fulfill(route, 400, { message: 'That role is not one of this site’s roles.' })
+      const invitation = {
+        id: `0198f2a0-0000-7000-8000-${String(700 + state.posted.length).padStart(12, '0')}`,
+        email,
+        siteId,
+        role,
+        expiresAt: state.expiresAt ?? inDays(7),
+        expired: false,
+      }
+      state.team.invitations = [
+        ...state.team.invitations.filter(
+          (waiting) => !(waiting.siteId === siteId && waiting.email === email),
+        ),
+        invitation,
+      ]
+      return fulfill(route, 201, {
+        invitation: { ...invitation, invitedBy: null, createdAt: new Date().toISOString() },
+        token: `secret-${state.posted.length}`,
       })
     },
   )

@@ -90,5 +90,15 @@ export const inviter = {
   tenant: { organization: 'Invite House Ltd', site: 'Invite House', host: 'invite.test' },
 }
 
+/**
+ * A tenth person, who walks the company journey (organizations T8): Hal makes an organization with two
+ * websites through the screens and adds Nina to both with one link. That changes Hal's organizations and
+ * websites, and Hal's team, so no other test uses Hal.
+ */
+export const founder = {
+  admin: { email: 'hal@harbour.test', name: 'Hal Harbour', password: 'harbour-flow-password' },
+  tenant: { organization: 'Harbour Holdings', site: 'Harbour Studio', host: 'harbour.test' },
+}
+
 /** Everyone with a site of their own, each made by the real seed command. */
-export const people = [solo, maker, finisher, stylist, greeter, remover, typer, inviter]
+export const people = [solo, maker, finisher, stylist, greeter, remover, typer, inviter, founder]

@@ -12,6 +12,9 @@ import { apiMessage } from './members-api.ts'
 
 export type InviteDetails = {
   siteName: string
+  /** The site's id, and the organization it is in (organizations T1): an API that predates them leaves them out. */
+  siteId?: string
+  organization?: { id: string; name: string }
   roleName: string
   email: string
   /** Whether the email already has an account: then the page asks only for its password. */
@@ -36,10 +39,17 @@ export async function lookupInvite(token: string): Promise<Lookup> {
       typeof answer.email === 'string' &&
       typeof answer.hasAccount === 'boolean'
     ) {
+      const { organization } = answer
       return {
         status: 'valid',
         invite: {
           siteName: answer.site.name,
+          ...(typeof answer.site.id === 'string' ? { siteId: answer.site.id } : {}),
+          ...(isRecord(organization) &&
+          typeof organization.id === 'string' &&
+          typeof organization.name === 'string'
+            ? { organization: { id: organization.id, name: organization.name } }
+            : {}),
           roleName: answer.role.name,
           email: answer.email,
           hasAccount: answer.hasAccount,
@@ -51,6 +61,25 @@ export async function lookupInvite(token: string): Promise<Lookup> {
     if (error instanceof ApiError && error.status === 404) return { status: 'dead' }
     return { status: 'cannot-check' }
   }
+}
+
+/** A link carries one secret per website, joined with `.` (organizations D-055); an admin-made link has at most this many. */
+export const MAX_SECRETS = 20
+
+/**
+ * The secrets of a link's `#` part: empty and repeated parts are ignored. `null` when there are more
+ * than the admin ever makes, which is treated as a dead link. A link of one secret is as it always was.
+ */
+export function secretsOf(hash: string): string[] | null {
+  const secrets = [
+    ...new Set(
+      hash
+        .replace(/^#/, '')
+        .split('.')
+        .filter((part) => part !== ''),
+    ),
+  ]
+  return secrets.length > MAX_SECRETS ? null : secrets
 }
 
 export type Accepted =

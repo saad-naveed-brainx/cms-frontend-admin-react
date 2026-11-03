@@ -151,7 +151,7 @@ export function describeSiteFailure(error: unknown, addresses: string[]): FormPr
     }
   }
   if (error instanceof ApiError && error.status === 403) {
-    return { fields: {}, form: 'Only the owner of an organisation can create sites.' }
+    return { fields: {}, form: 'Only the owner of an organization can create sites.' }
   }
   return describeFailure(error, [
     'name',

@@ -94,11 +94,12 @@ export async function removeMember(userId: string): Promise<void> {
   await authed(`/members/${encodeURIComponent(userId)}`, { method: 'DELETE' })
 }
 
-export async function createInvitation(body: {
-  email: string
-  roleId: string
-}): Promise<IssuedInvitation> {
-  const answer = await authed('/invitations', { method: 'POST', body })
+/** `siteId` is for an invitation to another site than the one being worked on (the company team, T7). */
+export async function createInvitation(
+  body: { email: string; roleId: string },
+  siteId?: string,
+): Promise<IssuedInvitation> {
+  const answer = await authed('/invitations', { method: 'POST', body, siteId })
   if (!isIssued(answer)) throw unusable()
   return answer
 }
@@ -114,8 +115,12 @@ export async function cancelInvitation(id: string): Promise<void> {
   await authed(`/invitations/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
-/** The secret goes after `#`, so it reaches no server's log (users-roles plan D4). */
-export const inviteLink = (token: string): string => `${location.origin}/invite#${token}`
+/**
+ * The secret goes after `#`, so it reaches no server's log (users-roles plan D4). A link for several
+ * websites carries one secret per website, joined with `.` (organizations D-055).
+ */
+export const inviteLink = (token: string | string[]): string =>
+  `${location.origin}/invite#${Array.isArray(token) ? token.join('.') : token}`
 
 /** The sentence the API gave with a refusal, if it gave one. */
 export function apiMessage(error: unknown): string | null {

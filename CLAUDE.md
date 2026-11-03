@@ -45,17 +45,18 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   browser tests (5190) can run beside it. Whatever port admin runs on must be in the API's `CORS_ORIGINS`.
 - `VITE_API_URL` points at **`:4001`** locally, not 4000.
 - **Who is signed in lives in `src/session.ts`**, outside React. Storage keys: `cms-admin.session`
-  (`{accessToken, expiresAt}` only) and `cms-admin.site` (the site being worked on). Everything else
-  (person, sites, role, permissions) is asked of `GET /auth/me` on every load. Calls go through `authed()`,
+  (`{accessToken, expiresAt}` only), `cms-admin.site` (the site being worked on) and `cms-admin.org` (its organization,
+  organizations T6). Everything else (person, sites, organizations, role, permissions) is asked of `GET /auth/me` on every load. Calls go through `authed()`,
   so the token and `X-Site-Id` travel with them and a 401 ends the session; `src/api.ts` is the only
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
   route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
-  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites` and `/sites/new`;
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites`, `/sites/new`, `/organizations/new`, `/team` and `/team/new`;
   `/invite` is shown by `App.tsx` before any of this). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
-- **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
-  Site switcher, New site only for someone who owns an organisation (`ownsAnOrganization`; a person with no sites reaches it through Sites › Add New), "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
+- **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (Organization
+  switcher when there are several, then the site or Site switcher, New site only for someone who owns an organization (`ownsAnOrganization`;
+  a person with no sites reaches it through Sites › Add New), New organization for anyone, "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
   Dashboard, **one entry per content type of the site** (from `GET /content-types`, so `/pages?type=<slug>`, with All …
   and Add New; one "Content" entry if the types cannot load) and Sites. `/pages` with no type is "All content". The
   menu folds to icons at 960 pixels and hides behind a Menu button at 782, as WordPress's does. Light only: the
@@ -71,8 +72,45 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `previewUrl(host, path, token)` (`<page address>?preview=<token>`): the tab is opened at the click, before the
   request, so it is not blocked as a pop-up, gets `opener = null`, and closes again if no link can be had. It waits
   for unsaved changes, because a preview shows the page as saved.
+- **Organizations** (organizations T6, `../docs/DECISIONS.md` D-054, D-056): the profile's `organizations` (id, name, `ownsOrganization`;
+  one owned with no site yet is there too) and each site's `organizationId` are **optional in the guards** (`isProfile` in `api.ts`): an
+  API that predates them leaves both out and then the admin is exactly what it was, a flat Site switcher with no Organization switcher,
+  no New organization and no grouping (`SessionState.organizations` is `null`; the stand-ins `profileBody`/`loginBody` give that answer
+  unless a test passes organizations, so every older test is also the regression test for it). Half an answer (organizations without
+  `organizationId` on a site, or malformed ones) is "cannot check", never half shown. **`pickWorkspace`** in `session.ts` chooses the
+  organization (remembered in `cms-admin.org`, else the one of the remembered site, else the first by name) and then the site in it
+  (remembered, else the first); `selectSite` also moves the organization, `selectOrganization` opens its first site or none, and
+  `reloadProfile(siteId?, organizationId?)` lands on a new site or a new (empty) organization. **Top bar:** the Organization switcher
+  (label "Organization", id `switch-organization`) shows with two or more organizations, the Site switcher (label "Site") lists only the
+  chosen organization's sites, and with one site there is a name instead, as before. An organization with no site (its owner's: a
+  member always has one) shows "No websites yet" with **Add your first website** (`/sites/new`, which opens on the organization being
+  worked in, or the one a `?organization=` names, when they own it). **New organization** (`/organizations/new`, `NewOrganization.tsx`,
+  `createOrganization` in `sites-api.ts`): a name, 1 to 100 characters checked here too, the API's refusal next to the box, one click
+  one request; then `reloadProfile(undefined, id)` and the Dashboard route says "Organization created." on "No websites yet". The Sites
+  screen groups sites under their organization (a `section` named by an `h2`, Switch and Delete as before, an empty one says "No
+  websites yet." and leads to New site on it). With two switchers a phone hides Visit Site, New site and New organization from the bar
+  (`.two-switchers .bar-optional`); they are on the Dashboard and the Sites screen. The visible word is "organization" (the older
+  screens said "organisation"; changed with the three New site screenshots). The real-API flow tests reach a site through
+  `openSite()` in `e2e/flow/support.ts`, which sets the remembered site and reloads, since each client there is its own organization.
+- **The company team** (`/team`, `Team.tsx`, `/team/new`, `AddPerson.tsx`, `team-api.ts`, organizations T7, `../docs/DECISIONS.md`
+  D-054, D-055): "Team" in the menu only when the organization being worked in is the person's own (`ownsCurrentOrganization` in
+  `useSignedIn`; the API decides, invariant 3), and about the organization, not one site, so it is routed even when it has no site.
+  Opened by anyone else the screens say they are for the owner and ask the API nothing. **Team** is `GET /organizations/:id/team`
+  (everyone at once): each person once with their websites and roles (a website's name leads to that website's Users screen:
+  `selectSite` then `/users`), the owner marked, and the waiting invitations ("Link works until …" in the viewer's own time, or
+  "Expired"); a 500 or no connection is "Couldn't load the team." with Try again, a 403 and a 404 are said in words. Nothing is
+  changed there. **Add person** is an email, the organization's websites as checkboxes each with a "Role for <website>" box (starting
+  at the least access, the last the API lists), and **Make invite link**: one `POST /invitations` per ticked website, each with that
+  website's id as `X-Site-Id` (`authed(path, { siteId })`, `createInvitation(body, siteId)`), one after another, and one link
+  `${location.origin}/invite#<secret>.<secret>` (`inviteLink` joins them with `.`, D-055) in `InviteLinkBox`, in view with Copy
+  focused. A website where the typed email already has access says "Already has access" and cannot be ticked; one with a waiting
+  invitation is replaced, and the box says the earlier link stops working. The email is sent trimmed and in lower case. **When one
+  website fails** the link for the ones that were made is shown, "The link above does not cover <website>." names the website with
+  the API's words, and **Try again for <website>** makes that one alone, with a link of its own; a 401 ends the session and the
+  sign-in screen replaces the page. The button is in a bar along the bottom (`.sticky-actions`), so it is in view on a long list. The
+  stand-ins are `fakeTeam` (the team and `/invitations` for any website) and the fixtures in `e2e/support/company.ts`.
 - **New site** (`/sites/new`, `NewSite.tsx`, `sites-api.ts`) is about the person, not one site, so it is
-  routed even when they belong to none. The organisation is asked only when they own several. After it is
+  routed even when they belong to none. The organization is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new
   site and selects it, then the screen goes to `/pages` with a "Site created." notice. The notice rides in
   the history entry, so a reload of that page shows it again (as with "Page created."). Opened on this computer
@@ -131,19 +169,31 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   box is checked here. The link is `${location.origin}/invite#${token}` (plan D4): the API gives the secret once and keeps a
   fingerprint, so `InviteLink` is the only place it is ever seen, and it opens in view with Copy focused (QA lesson
   2026-10-09). Without a clipboard (a page not on https) it says to copy by hand. The stand-in is `fakeMembers`.
-- **The invite page** (`/invite#<secret>`, `Invite.tsx`, `invites-api.ts`, users-roles T7): the one page `App.tsx` shows **before**
+- **The invite page** (`/invite#<secret>` or `#<secret>.<secret>`, `Invite.tsx`, `invites-api.ts`, users-roles T7, organizations T8): the one page `App.tsx` shows **before**
   the session decides, and whoever is signed in does not matter yet (it is keyed by the `#` part, so another link typed over
   it starts it afresh). It asks the open `POST /invitations/lookup` what the link is for, then shows "You're invited to
   <site> as <role>": a new email gets Name and Password (at least 12, as the API says; one box with a Show button), an
   existing account only its Password. Joining calls `POST /invitations/accept`, which answers as sign-in does;
-  `startSession(result, invite)` in `session.ts` stores it and selects the invited site (matched by site and role name:
-  the answer carries no site id) and the page goes to `/`, so the secret leaves the address bar. Every failure is one case
+  `startSession(result, invite)` in `session.ts` stores it and selects the invited site (by its id, which the lookup answers
+  since organizations T1; an API that predates it is matched by site and role name, B-45) and the page goes to `/`, so the secret leaves the address bar. Every failure is one case
   of `Accepted`: a dead link (all the same 404), a wrong password (401), an account made since the page opened (409, the
   page then asks only for the password), a pause (429, the API's own sentence) and the API's 400 lines. If someone is
   signed in, the page says so first and joining replaces their session. `signIn()` answers `{ outcome }`, with `paused`
   and the API's message for a 429, which the sign-in screen shows as it is while keeping the email. The stand-in is
   `fakeInvites`; the whole journey on the real API is `e2e/flow/invite.spec.ts` (flow person Ola, `inviter`). The Add New
   screenshot masks the link, which holds the admin's own port.
+  **A link of several websites** (`#<secret>.<secret>`, D-055, made by Add person) is split by `secretsOf` in `invites-api.ts`: empty
+  and repeated parts are ignored, and more than 20 secrets, or secrets made for different emails or organizations, are a dead link
+  (the usual words, and the API is not asked about the 21). Each part is looked up (`Promise.all`); a part the API no longer knows is
+  left out and the page says "One part of this invite is no longer valid." (all dead is the usual dead link). With several, the heading
+  names the organization and the list says "<website> as <role>"; one secret is as it always was. Joining goes part by part: a new
+  person's first accept sends the name and password and the later ones the password only; for an existing account a wrong password is
+  tried on the first part only (one request, "Password is incorrect."), so the sign-in limit is not used once for every website. After
+  one website worked, a later one failing leaves the person signed in with what they have, on the first website joined, and the Dashboard
+  says "You joined A, but not B. Open the link again." (`notice` in the navigation state, read by `Overview.tsx`). Opened again, the
+  link offers what is left and asks for the password only. `fakeInvites` models several secrets for one email (an account made by the
+  first accept is the account of the rest; an accepted invite is used up); the whole company journey on the real API is
+  `e2e/flow/organizations.spec.ts` (flow person Hal, `founder`).
 - **Choosing a library picture** (`MediaPicker.tsx`, MED-03): a native modal `<dialog>` ("Choose a picture", "Choose a logo")
   with the library's grid; clicking a picture chooses it, "Upload a new picture" (with `media.upload`) adds one and chooses
   it, Escape or Cancel closes it. Render it only while choosing (`{open && <MediaPicker … />}`): it opens on mount and

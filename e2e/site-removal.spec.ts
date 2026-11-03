@@ -95,7 +95,7 @@ test('[UC-SD-06] a refusal, a failure and a site already gone are explained, and
   await confirmBox(page).fill('Orchard Bakery')
   await deleteButton(page).click()
   await expect(page.getByRole('alert')).toHaveText(
-    'Only the owner of the organisation can delete this site.',
+    'Only the owner of the organization can delete this site.',
   )
   await expect(confirmBox(page)).toHaveValue('Orchard Bakery')
   await expect(deleteButton(page)).toBeEnabled()

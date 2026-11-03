@@ -10,9 +10,13 @@ import { admin, adminRole, tenants } from './tenants.ts'
 
 const SESSION_KEY = 'cms-admin.session'
 const SITE_KEY = 'cms-admin.site'
+const ORGANIZATION_KEY = 'cms-admin.org'
 const siteNames = tenants.map((tenant) => tenant.site)
 
-type RealMembership = { site: { id: string; name: string }; permissions: string[] }
+type RealMembership = {
+  site: { id: string; name: string; organizationId: string }
+  permissions: string[]
+}
 
 /** Asks the real API directly, so what the screen shows can be compared with what the API says. */
 async function realLogin(request: APIRequestContext) {
@@ -31,8 +35,7 @@ async function signInThroughTheScreen(page: Page) {
   await expect(page.getByRole('banner').getByRole('button', { name: 'Sign out' })).toBeVisible()
 }
 
-const stored = (page: Page, key: string) =>
-  page.evaluate((name) => localStorage.getItem(name), key)
+const stored = (page: Page, key: string) => page.evaluate((name) => localStorage.getItem(name), key)
 
 const whoAmIRequest = (page: Page) =>
   page.waitForRequest((request) => new URL(request.url()).pathname === '/auth/me')
@@ -51,7 +54,9 @@ test('[UC-AS-01] signing in with a seeded account shows the person, the site, th
 
   expect(membership?.permissions.length).toBeGreaterThan(0)
   await expect(
-    page.getByText(`Signed in as ${admin.name} (${admin.email}). Your role on this site: ${adminRole}.`),
+    page.getByText(
+      `Signed in as ${admin.name} (${admin.email}). Your role on this site: ${adminRole}.`,
+    ),
   ).toBeVisible()
   await expect(page.getByRole('banner')).toContainText(admin.name)
   await expect(page.locator('main li')).toHaveCount(membership?.permissions.length ?? -1)
@@ -61,7 +66,9 @@ test('[UC-AS-01] signing in with a seeded account shows the person, the site, th
   expect(Object.keys(saved).sort()).toEqual(['accessToken', 'expiresAt'])
 })
 
-test('[UC-AS-02] a reload keeps the session and asks the API who it belongs to', async ({ page }) => {
+test('[UC-AS-02] a reload keeps the session and asks the API who it belongs to', async ({
+  page,
+}) => {
   await signInThroughTheScreen(page)
   const siteBefore = (await page.locator('.welcome-panel h2').textContent()) ?? ''
   const saved = JSON.parse((await stored(page, SESSION_KEY)) ?? 'null') as { accessToken: string }
@@ -92,25 +99,29 @@ test('[UC-AS-03] signing out returns to the sign-in screen, and a reload stays t
   expect(asked.filter((path) => path.startsWith('/auth/'))).toEqual([])
 })
 
-test('[UC-AS-04] with two sites the switcher lists both, switches, remembers the choice and sends it', async ({
+test('[UC-AS-04] with two organizations the switcher lists both, switches, remembers the choice and sends it', async ({
   page,
   request,
 }) => {
   await signInThroughTheScreen(page)
   const real = await realLogin(request)
 
-  const switcher = page.getByLabel('Site')
+  // The two clients are two organizations (one website each), so the Organization switcher
+  // lists both and there is no Site switcher: each organization has one website.
+  const switcher = page.getByRole('banner').getByLabel('Organization', { exact: true })
   await expect(switcher.locator('option')).toHaveCount(2)
-  for (const site of siteNames) {
-    await expect(switcher.locator('option', { hasText: `${site} · ${adminRole}` })).toHaveCount(1)
+  for (const { organization } of tenants) {
+    await expect(switcher.locator('option', { hasText: organization })).toHaveCount(1)
   }
+  await expect(page.getByRole('banner').getByLabel('Site', { exact: true })).toHaveCount(0)
 
   const heading = page.locator('.welcome-panel h2')
   const shown = (await heading.textContent()) ?? ''
   const other = real.memberships.find((m) => m.site.name !== shown)
   expect(other).toBeDefined()
-  await switcher.selectOption(other?.site.id ?? '')
+  await switcher.selectOption(other?.site.organizationId ?? '')
   await expect(heading).toHaveText(other?.site.name ?? '')
+  expect(await stored(page, ORGANIZATION_KEY)).toBe(other?.site.organizationId)
   expect(await stored(page, SITE_KEY)).toBe(other?.site.id)
 
   // After a reload the same site is still the one being worked on, and the request says so.

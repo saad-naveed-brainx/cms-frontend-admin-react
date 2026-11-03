@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  Building2,
   ExternalLink,
   FileText,
   Globe,
@@ -12,17 +13,20 @@ import {
   Plus,
   Shapes,
   Users as UsersIcon,
+  UsersRound,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router'
+import AddPerson from './AddPerson.tsx'
 import AddUser from './AddUser.tsx'
-import type { Membership, User } from './api.ts'
+import type { Membership, OrganizationSummary, User } from './api.ts'
 import Appearance from './Appearance.tsx'
 import ContentTypes from './ContentTypes.tsx'
 import EditPage from './EditPage.tsx'
 import { listPath, pluralLabel } from './helpers.ts'
 import { confirmLeaving } from './leave-guard.ts'
 import Media from './Media.tsx'
+import NewOrganization from './NewOrganization.tsx'
 import NewPage from './NewPage.tsx'
 import NewSite from './NewSite.tsx'
 import NotFound from './NotFound.tsx'
@@ -30,24 +34,44 @@ import Overview from './Overview.tsx'
 import { TYPES_CHANGED, fetchTypes } from './pages-api.ts'
 import type { PageType } from './pages-api.ts'
 import PagesList from './PagesList.tsx'
-import { selectSite, signOut } from './session.ts'
+import { selectOrganization, selectSite, signOut } from './session.ts'
 import { external, siteUrl } from './site-links.ts'
 import Sites from './Sites.tsx'
+import Team from './Team.tsx'
 import { useSignedIn } from './useSignedIn.ts'
 import Users from './Users.tsx'
 
-type Props = { user: User; memberships: Membership[]; siteId: string | null }
+type Props = {
+  user: User
+  memberships: Membership[]
+  /** Null from an API that predates organizations: the bar then has the flat Site switcher only. */
+  organizations: OrganizationSummary[] | null
+  organizationId: string | null
+  siteId: string | null
+}
 
 /**
- * The signed-in frame, laid out as WordPress lays out its admin: a dark bar across the top (the site
- * you are working on, New site for organisation owners, who you are) and a dark menu down the left. The menu offers only what
- * works: the Dashboard, one entry per content type of the site, Media, Content types, Appearance, Users and Sites.
+ * The signed-in frame, laid out as WordPress lays out its admin: a dark bar across the top (the
+ * organization and site you are working on, New site for organization owners, New organization, who
+ * you are) and a dark menu down the left. The menu offers only what works: the Dashboard, one entry
+ * per content type of the site, Media, Content types, Appearance, Users and Sites.
  */
-export default function Shell({ user, memberships, siteId }: Props) {
+export default function Shell({ user, memberships, organizations, organizationId, siteId }: Props) {
   const location = useLocation()
   const navigate = useNavigate()
   const current = memberships.find((membership) => membership.site.id === siteId) ?? null
   const { ownsAnOrganization } = useSignedIn()
+  // With organizations the Site switcher lists the chosen organization's sites only, and the
+  // Organization switcher is there when there is a choice to make.
+  const sitesHere =
+    organizations === null
+      ? memberships
+      : memberships.filter((membership) => membership.site.organizationId === organizationId)
+  const currentOrganization =
+    organizations?.find((organization) => organization.id === organizationId) ?? null
+  const switchesOrganization =
+    organizations !== null && organizations.length > 1 && organizationId !== null
+  const switchesSite = sitesHere.length > 1 && siteId !== null
   // The phone layout hides the menu behind a button; following a link closes it again.
   const [menuOpen, setMenuOpen] = useState(false)
   const [openedAt, setOpenedAt] = useState(location)
@@ -64,9 +88,16 @@ export default function Shell({ user, memberships, siteId }: Props) {
     if (location.pathname.startsWith('/pages/')) navigate('/pages')
   }
 
+  function changeOrganization(id: string) {
+    // It opens one of that organization's sites, so this is a change of site too.
+    if (!confirmLeaving()) return
+    selectOrganization(id)
+    if (location.pathname.startsWith('/pages/')) navigate('/pages')
+  }
+
   return (
     <div className={menuOpen ? 'wp menu-open' : 'wp'}>
-      <header className="adminbar">
+      <header className={switchesOrganization ? 'adminbar two-switchers' : 'adminbar'}>
         <button
           type="button"
           className="adminbar-item menu-toggle"
@@ -77,14 +108,33 @@ export default function Shell({ user, memberships, siteId }: Props) {
           <Menu aria-hidden="true" size={20} />
           <span className="screen-reader-text">Menu</span>
         </button>
-        {memberships.length > 1 && siteId !== null ? (
+        {switchesOrganization && (
+          <div className="adminbar-item switcher">
+            <Building2 aria-hidden="true" size={18} />
+            <label htmlFor="switch-organization" className="screen-reader-text">
+              Organization
+            </label>
+            <select
+              id="switch-organization"
+              value={organizationId}
+              onChange={(event) => changeOrganization(event.target.value)}
+            >
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>
+                  {organization.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {switchesSite ? (
           <div className="adminbar-item switcher">
             <House aria-hidden="true" size={18} />
             <label htmlFor="site" className="screen-reader-text">
               Site
             </label>
             <select id="site" value={siteId} onChange={(event) => changeSite(event.target.value)}>
-              {memberships.map((membership) => (
+              {sitesHere.map((membership) => (
                 <option key={membership.site.id} value={membership.site.id}>
                   {membership.site.name} · {membership.role.name}
                 </option>
@@ -100,15 +150,25 @@ export default function Shell({ user, memberships, siteId }: Props) {
           )
         )}
         {current?.site.primaryHost && (
-          <a className="adminbar-item" href={siteUrl(current.site.primaryHost)} {...external}>
+          <a
+            className="adminbar-item bar-optional"
+            href={siteUrl(current.site.primaryHost)}
+            {...external}
+          >
             <ExternalLink aria-hidden="true" size={16} />
             <span className="adminbar-label">Visit Site</span>
           </a>
         )}
         {ownsAnOrganization && (
-          <Link className="adminbar-item" to="/sites/new">
+          <Link className="adminbar-item bar-optional" to="/sites/new">
             <Plus aria-hidden="true" size={18} />
             <span className="adminbar-label">New site</span>
+          </Link>
+        )}
+        {organizations !== null && (
+          <Link className="adminbar-item bar-optional" to="/organizations/new">
+            <Building2 aria-hidden="true" size={16} />
+            <span className="adminbar-label">New organization</span>
           </Link>
         )}
         <div className="adminbar-end">
@@ -130,8 +190,17 @@ export default function Shell({ user, memberships, siteId }: Props) {
       <div className="wp-content">
         <Routes>
           {/* About the person, not one site, so a person with no sites can reach them. */}
-          <Route path="/sites" element={<Sites memberships={memberships} siteId={siteId} />} />
+          <Route
+            path="/sites"
+            element={
+              <Sites memberships={memberships} organizations={organizations} siteId={siteId} />
+            }
+          />
           <Route path="/sites/new" element={<NewSite />} />
+          <Route path="/organizations/new" element={<NewOrganization />} />
+          {/* The company team is about the organization, so a person whose organization has no site can reach it. */}
+          <Route path="/team" element={<Team key={organizationId ?? 'none'} />} />
+          <Route path="/team/new" element={<AddPerson key={organizationId ?? 'none'} />} />
           {current && (
             <>
               {/* Keyed by site, so changing site loads that site's pages from scratch. */}
@@ -146,7 +215,10 @@ export default function Shell({ user, memberships, siteId }: Props) {
               <Route path="/users/new" element={<AddUser key={current.site.id} />} />
             </>
           )}
-          <Route path="*" element={current ? <NotFound /> : <NoSites />} />
+          <Route
+            path="*"
+            element={current ? <NotFound /> : <NoSites organization={currentOrganization} />}
+          />
         </Routes>
       </div>
     </div>
@@ -164,7 +236,13 @@ type Entry = {
 /** The left menu. Keyed by site by its parent, so another site's content types are loaded afresh. */
 function AdminMenu({ hasSite }: { hasSite: boolean }) {
   const location = useLocation()
-  const { canCreate, canManageMembers, canManageSettings, canManageTypes } = useSignedIn()
+  const {
+    canCreate,
+    canManageMembers,
+    canManageSettings,
+    canManageTypes,
+    ownsCurrentOrganization,
+  } = useSignedIn()
   // null: the types could not be loaded, so one entry lists every type instead.
   const [types, setTypes] = useState<PageType[] | null | undefined>(undefined)
 
@@ -259,6 +337,19 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
       })
     }
   }
+  // The company team: the organization's owner's (the API decides, invariant 3).
+  if (ownsCurrentOrganization) {
+    entries.push({
+      label: 'Team',
+      to: '/team',
+      icon: UsersRound,
+      current: path.startsWith('/team'),
+      sub: [
+        { label: 'All people', to: '/team', current: path === '/team' },
+        { label: 'Add person', to: '/team/new', current: path === '/team/new' },
+      ],
+    })
+  }
   entries.push({
     label: 'Sites',
     to: '/sites',
@@ -301,11 +392,39 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
   )
 }
 
-function NoSites() {
+/**
+ * Nothing to work on. With an organization in view it is one with no website yet (its owner's, since
+ * a member always has a website): it says so and leads to New site, which opens on it. Without one, the
+ * person is not on any site.
+ */
+function NoSites({ organization }: { organization: OrganizationSummary | null }) {
+  const created = (useLocation().state as { organizationCreated?: boolean } | null)
+    ?.organizationCreated
+
+  if (organization === null) {
+    return (
+      <main>
+        <h1>No sites yet</h1>
+        <p>Your account is not a member of any site. Ask an administrator to add you.</p>
+      </main>
+    )
+  }
   return (
     <main>
-      <h1>No sites yet</h1>
-      <p>Your account is not a member of any site. Ask an administrator to add you.</p>
+      <h1>No websites yet</h1>
+      {created && (
+        <p role="status" className="notice">
+          Organization created.
+        </p>
+      )}
+      <p>{organization.name} has no websites yet.</p>
+      {organization.ownsOrganization && (
+        <div className="actions">
+          <Link className="button" to="/sites/new">
+            Add your first website
+          </Link>
+        </div>
+      )}
     </main>
   )
 }
