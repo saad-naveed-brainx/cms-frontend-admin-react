@@ -129,7 +129,7 @@ test('[UC-RS-13] a bad address, a refusal and a server that is down are explaine
   }
   await create(page).click()
   await expect(page.getByRole('alert')).toHaveText(
-    'Only the owner of an organisation can create sites.',
+    'Only the owner of an organization can create sites.',
   )
 
   api.override = (route, request) => {
@@ -168,11 +168,11 @@ test('[UC-RS-13] a person who owns no organisation is told so, and organisations
     return true
   }
   await page.goto('/sites/new')
-  await expect(page.getByText("Couldn't load your organisations.")).toBeVisible()
+  await expect(page.getByText("Couldn't load your organizations.")).toBeVisible()
 
   failing = false
   await page.getByRole('button', { name: 'Try again' }).click()
-  await expect(page.getByText('Only the owner of an organisation can create sites.')).toBeVisible()
+  await expect(page.getByText('Only the owner of an organization can create sites.')).toBeVisible()
   await expect(create(page)).toHaveCount(0)
 })
 
@@ -186,14 +186,14 @@ test('[UC-RS-13] with several organisations the person must choose one, and the 
   await nameField(page).fill('Orchard Annex')
   await firstAddress(page).fill('annex.test')
 
-  const organisation = page.getByLabel('Organisation')
+  const organisation = page.getByLabel('Organization')
   await expect(organisation.locator('option')).toHaveText([
-    'Choose an organisation',
+    'Choose an organization',
     'Orchard Holdings',
     'Orchard Second Ltd',
   ])
   await create(page).click()
-  await expect(organisation).toHaveAccessibleDescription('Choose an organisation.')
+  await expect(organisation).toHaveAccessibleDescription('Choose an organization.')
   await expect(organisation).toBeFocused()
   expect(api.posted).toEqual([])
 

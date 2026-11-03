@@ -20,6 +20,7 @@ export function useSignedIn() {
     return {
       userId: null,
       siteId: null,
+      organizationId: null,
       siteName: null,
       siteHost: null,
       siteTheme: {} as unknown,
@@ -40,6 +41,8 @@ export function useSignedIn() {
     userId: state.user.id,
     /** The site being worked on (the Site control), or null when the person has none. */
     siteId: membership?.site.id ?? null,
+    /** The organization being worked in; null with an API that predates organizations, or when the person has none. */
+    organizationId: state.organizationId,
     /** The current site's name, as its pages' titles end ("About — Orchard Bakery"). */
     siteName: membership?.site.name ?? null,
     /** The current site's main web address, for links to the website; null when it has none. */
@@ -47,8 +50,14 @@ export function useSignedIn() {
     /** The current site's stored theme, for the live preview; the preview lays it over the default. */
     siteTheme: (membership?.site.theme ?? {}) as unknown,
     canCreate: permissions.includes(CONTENT_CREATE),
-    /** Someone who owns an organisation may make sites in it (New site, D11). */
-    ownsAnOrganization: state.memberships.some((m) => m.ownsOrganization === true),
+    /**
+     * Someone who owns an organization may make sites in it (New site, D11). With organizations in the
+     * profile that includes one with no site yet.
+     */
+    ownsAnOrganization:
+      state.organizations === null
+        ? state.memberships.some((m) => m.ownsOrganization === true)
+        : state.organizations.some((organization) => organization.ownsOrganization),
     /** The site's name, header, footer and look (Appearance, GOV-04). */
     canManageSettings: permissions.includes(SETTINGS_MANAGE),
     /** Adding pictures to the media library (MED-01). */

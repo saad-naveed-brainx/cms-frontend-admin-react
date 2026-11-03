@@ -18,13 +18,19 @@ export async function signInThroughTheScreen(page: Page, person: Person = admin)
   await expect(page.getByRole('banner').getByRole('button', { name: 'Sign out' })).toBeVisible()
 }
 
-/** Picks the site in the Site control, when the person has several. */
+/**
+ * Works on this site, whichever organization it is in. The Organization and Site controls list one
+ * organization's sites at a time (organizations T6), so the test does not pick through them: it sets
+ * the site the admin remembers, which brings its organization along, and reloads. The screens that
+ * are about the controls themselves drive them (`sign-in.spec.ts`, `organizations.spec.ts`).
+ */
 export async function openSite(page: Page, siteId: string) {
-  const switcher = page.getByLabel('Site')
-  if ((await switcher.count()) > 0) {
-    await switcher.selectOption(siteId)
-    await expect(switcher).toHaveValue(siteId)
-  }
+  await page.evaluate((id) => {
+    localStorage.removeItem('cms-admin.org')
+    localStorage.setItem('cms-admin.site', id)
+  }, siteId)
+  await page.reload()
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Sign out' })).toBeVisible()
 }
 
 /**
@@ -60,7 +66,7 @@ export async function realApi(request: APIRequestContext, person: Person, siteNa
   expect(login.status()).toBe(200)
   const body = (await login.json()) as {
     accessToken: string
-    memberships: { site: { id: string; name: string } }[]
+    memberships: { site: { id: string; name: string; organizationId: string } }[]
   }
   const site = body.memberships.find((m) => m.site.name === siteName)?.site
   if (!site) throw new Error(`${person.email} has no site called ${siteName}`)
@@ -68,6 +74,8 @@ export async function realApi(request: APIRequestContext, person: Person, siteNa
 
   return {
     siteId: site.id,
+    /** The organization the site is in: the Organization switcher lists it, the Site switcher lists its sites. */
+    organizationId: site.organizationId,
     async createPage(data: { type: string; title: string; slug: string; blocks?: object[] }) {
       const response = await request.post(`${flowApiUrl}/content`, { headers, data })
       expect(response.status(), `creating ${data.slug}`).toBe(201)

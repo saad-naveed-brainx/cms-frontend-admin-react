@@ -45,17 +45,18 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   browser tests (5190) can run beside it. Whatever port admin runs on must be in the API's `CORS_ORIGINS`.
 - `VITE_API_URL` points at **`:4001`** locally, not 4000.
 - **Who is signed in lives in `src/session.ts`**, outside React. Storage keys: `cms-admin.session`
-  (`{accessToken, expiresAt}` only) and `cms-admin.site` (the site being worked on). Everything else
-  (person, sites, role, permissions) is asked of `GET /auth/me` on every load. Calls go through `authed()`,
+  (`{accessToken, expiresAt}` only), `cms-admin.site` (the site being worked on) and `cms-admin.org` (its organization,
+  organizations T6). Everything else (person, sites, organizations, role, permissions) is asked of `GET /auth/me` on every load. Calls go through `authed()`,
   so the token and `X-Site-Id` travel with them and a 401 ends the session; `src/api.ts` is the only
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
   route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
-  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites` and `/sites/new`;
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites`, `/sites/new` and `/organizations/new`;
   `/invite` is shown by `App.tsx` before any of this). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
-- **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
-  Site switcher, New site only for someone who owns an organisation (`ownsAnOrganization`; a person with no sites reaches it through Sites › Add New), "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
+- **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (Organization
+  switcher when there are several, then the site or Site switcher, New site only for someone who owns an organization (`ownsAnOrganization`;
+  a person with no sites reaches it through Sites › Add New), New organization for anyone, "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
   Dashboard, **one entry per content type of the site** (from `GET /content-types`, so `/pages?type=<slug>`, with All …
   and Add New; one "Content" entry if the types cannot load) and Sites. `/pages` with no type is "All content". The
   menu folds to icons at 960 pixels and hides behind a Menu button at 782, as WordPress's does. Light only: the
@@ -71,8 +72,28 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   `previewUrl(host, path, token)` (`<page address>?preview=<token>`): the tab is opened at the click, before the
   request, so it is not blocked as a pop-up, gets `opener = null`, and closes again if no link can be had. It waits
   for unsaved changes, because a preview shows the page as saved.
+- **Organizations** (organizations T6, `../docs/DECISIONS.md` D-054, D-056): the profile's `organizations` (id, name, `ownsOrganization`;
+  one owned with no site yet is there too) and each site's `organizationId` are **optional in the guards** (`isProfile` in `api.ts`): an
+  API that predates them leaves both out and then the admin is exactly what it was, a flat Site switcher with no Organization switcher,
+  no New organization and no grouping (`SessionState.organizations` is `null`; the stand-ins `profileBody`/`loginBody` give that answer
+  unless a test passes organizations, so every older test is also the regression test for it). Half an answer (organizations without
+  `organizationId` on a site, or malformed ones) is "cannot check", never half shown. **`pickWorkspace`** in `session.ts` chooses the
+  organization (remembered in `cms-admin.org`, else the one of the remembered site, else the first by name) and then the site in it
+  (remembered, else the first); `selectSite` also moves the organization, `selectOrganization` opens its first site or none, and
+  `reloadProfile(siteId?, organizationId?)` lands on a new site or a new (empty) organization. **Top bar:** the Organization switcher
+  (label "Organization", id `switch-organization`) shows with two or more organizations, the Site switcher (label "Site") lists only the
+  chosen organization's sites, and with one site there is a name instead, as before. An organization with no site (its owner's: a
+  member always has one) shows "No websites yet" with **Add your first website** (`/sites/new`, which opens on the organization being
+  worked in, or the one a `?organization=` names, when they own it). **New organization** (`/organizations/new`, `NewOrganization.tsx`,
+  `createOrganization` in `sites-api.ts`): a name, 1 to 100 characters checked here too, the API's refusal next to the box, one click
+  one request; then `reloadProfile(undefined, id)` and the Dashboard route says "Organization created." on "No websites yet". The Sites
+  screen groups sites under their organization (a `section` named by an `h2`, Switch and Delete as before, an empty one says "No
+  websites yet." and leads to New site on it). With two switchers a phone hides Visit Site, New site and New organization from the bar
+  (`.two-switchers .bar-optional`); they are on the Dashboard and the Sites screen. The visible word is "organization" (the older
+  screens said "organisation"; changed with the three New site screenshots). The real-API flow tests reach a site through
+  `openSite()` in `e2e/flow/support.ts`, which sets the remembered site and reloads, since each client there is its own organization.
 - **New site** (`/sites/new`, `NewSite.tsx`, `sites-api.ts`) is about the person, not one site, so it is
-  routed even when they belong to none. The organisation is asked only when they own several. After it is
+  routed even when they belong to none. The organization is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new
   site and selects it, then the screen goes to `/pages` with a "Site created." notice. The notice rides in
   the history entry, so a reload of that page shows it again (as with "Page created."). Opened on this computer

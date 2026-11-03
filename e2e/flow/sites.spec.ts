@@ -29,7 +29,7 @@ test('[UC-RS-12] creates a site through the screen: it is selected, holds only i
   await newSiteLink(page).click()
   await expect(page.getByRole('heading', { level: 1, name: 'New site' })).toBeVisible()
   // Mia owns one organisation, so she is not asked which.
-  await expect(page.getByLabel('Organisation')).toHaveCount(0)
+  await expect(page.getByLabel('Organization')).toHaveCount(0)
   await page.getByLabel('Name', { exact: true }).fill(`  ${siteName}  `)
   await page.getByLabel('Web address', { exact: true }).fill(`https://${typed.toUpperCase()}/`)
   await page.getByRole('button', { name: 'Create site' }).click()

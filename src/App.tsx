@@ -29,6 +29,14 @@ export default function App() {
     case 'cannot-check':
       return <CannotCheck />
     case 'signed-in':
-      return <Shell user={state.user} memberships={state.memberships} siteId={state.siteId} />
+      return (
+        <Shell
+          user={state.user}
+          memberships={state.memberships}
+          organizations={state.organizations}
+          organizationId={state.organizationId}
+          siteId={state.siteId}
+        />
+      )
   }
 }

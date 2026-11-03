@@ -142,11 +142,12 @@ test('[UC-SB-03] switching site or signing out with unsaved changes asks first, 
   await page.goto(`/pages/${made.id}`)
   await page.getByLabel('Meta description').fill('Typed, not saved')
 
-  const switcher = page.getByLabel('Site')
+  // Each client is its own organization, so the other site is reached through the Organization switcher.
+  const switcher = page.getByRole('banner').getByLabel('Organization', { exact: true })
   let asked = answerNextDialog(page, false)
-  await switcher.selectOption(maple.siteId)
+  await switcher.selectOption(maple.organizationId)
   expect(await asked).toEqual({ type: 'confirm', message: LEAVE })
-  await expect(switcher).toHaveValue(api.siteId)
+  await expect(switcher).toHaveValue(api.organizationId)
   await expect(page).toHaveURL(`/pages/${made.id}`)
   await expect(page.getByLabel('Meta description')).toHaveValue('Typed, not saved')
 
@@ -158,9 +159,9 @@ test('[UC-SB-03] switching site or signing out with unsaved changes asks first, 
 
   // Leave for the other site: asked once, and the other site's pages show.
   asked = answerNextDialog(page, true)
-  await switcher.selectOption(maple.siteId)
+  await switcher.selectOption(maple.organizationId)
   await asked
   await expect(page).toHaveURL('/pages')
-  await expect(switcher).toHaveValue(maple.siteId)
+  await expect(switcher).toHaveValue(maple.organizationId)
   expect((await api.getPage(made.id)).body.seoDescription).toBeNull()
 })

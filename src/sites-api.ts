@@ -2,8 +2,9 @@ import { ApiError, isRecord } from './api.ts'
 import { authed } from './session.ts'
 
 /**
- * Creating a site, as the admin uses it (api/src/provisioning/site-creation.controller.ts). Each
- * answer is checked for the fields the screen reads; anything else is treated as a failure.
+ * Creating a site or an organization, as the admin uses them (api/src/provisioning/
+ * site-creation.controller.ts, api/src/organizations/organizations.controller.ts). Each answer is
+ * checked for the fields the screen reads; anything else is treated as a failure.
  */
 
 export type Organization = { id: string; name: string }
@@ -20,13 +21,20 @@ function isNamed(value: unknown): value is Organization {
   return isRecord(value) && typeof value.id === 'string' && typeof value.name === 'string'
 }
 
-/** The organisations the signed-in person owns: the only ones they can add a site to. */
+/** The organizations the signed-in person owns: the only ones they can add a site to. */
 export async function fetchOrganizations(): Promise<Organization[]> {
   const answer = await authed('/organizations')
   if (!isRecord(answer) || !Array.isArray(answer.items) || !answer.items.every(isNamed)) {
     throw unusable()
   }
   return answer.items
+}
+
+/** Makes an organization the signed-in person owns (organizations T2): any signed-in person may. */
+export async function createOrganization(name: string): Promise<Organization> {
+  const answer = await authed('/organizations', { method: 'POST', body: { name } })
+  if (!isNamed(answer)) throw unusable()
+  return { id: answer.id, name: answer.name }
 }
 
 export async function createSite(body: {
@@ -51,7 +59,7 @@ export async function createSite(body: {
   }
 }
 
-/** Deletes a site for good (D-039): only the owner of its organisation may. The API answers 204. */
+/** Deletes a site for good (D-039): only the owner of its organization may. The API answers 204. */
 export async function deleteSite(siteId: string): Promise<void> {
   await authed(`/sites/${encodeURIComponent(siteId)}`, { method: 'DELETE' })
 }

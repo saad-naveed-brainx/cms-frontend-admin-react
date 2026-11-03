@@ -11,6 +11,7 @@ import { flowApiPort } from '../flow/env.ts'
 
 export const SESSION_KEY = 'cms-admin.session'
 export const SITE_KEY = 'cms-admin.site'
+export const ORGANIZATION_KEY = 'cms-admin.org'
 
 export const person = {
   id: '0198f2a0-0000-7000-8000-0000000000f1',
@@ -44,17 +45,37 @@ export const maple = {
 export const inDays = (days: number): string =>
   new Date(Date.now() + days * 86_400_000).toISOString()
 
-export const profileBody = (memberships = [orchard, maple]) => ({ user: person, memberships })
+/** An organization as `/auth/me` and sign-in list it (organizations T1). */
+export type MockOrganization = { id: string; name: string; ownsOrganization: boolean }
 
-export const loginBody = (memberships = [orchard, maple]) => ({
+/**
+ * The profile as the API answers it. Without `organizations` it is the API before organizations (no
+ * `organizations`, no `organizationId` on a site): the admin then shows the flat Site switcher, and
+ * every test written before organizations runs against that answer (UC-OR-18).
+ */
+export const profileBody = (
+  memberships = [orchard, maple],
+  organizations?: MockOrganization[],
+) => ({
+  user: person,
+  memberships,
+  ...(organizations === undefined ? {} : { organizations }),
+})
+
+export const loginBody = (memberships = [orchard, maple], organizations?: MockOrganization[]) => ({
   accessToken: 'mock-access-token',
   tokenType: 'Bearer',
   expiresAt: inDays(7),
-  ...profileBody(memberships),
+  ...profileBody(memberships, organizations),
 })
 
 /** Answers a call with a status and a body. The API is another origin, so the answer says it may be read. */
-export function fulfill(route: Route, status: number, body: unknown, contentType = 'application/json') {
+export function fulfill(
+  route: Route,
+  status: number,
+  body: unknown,
+  contentType = 'application/json',
+) {
   return route.fulfill({
     status,
     contentType,
@@ -209,7 +230,10 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
       }
       if (url.pathname === '/content-types' && method === 'POST') {
         const body = request.postDataJSON() as { name: string; urlPrefix: string }
-        const slug = body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        const slug = body.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
         const same = state.types.find((type) => type.slug === slug)
         if (same) {
           return fulfill(route, 409, {
@@ -257,7 +281,8 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
           blocks?: unknown[]
         }
         const type = state.types.find((item) => item.slug === body.type)
-        if (!type) return fulfill(route, 400, { message: 'Invalid request', errors: ['type: unknown'] })
+        if (!type)
+          return fulfill(route, 400, { message: 'Invalid request', errors: ['type: unknown'] })
         const created = fakePage(state.pages.length + 100, {
           type: typeRef(type),
           title: body.title,
@@ -299,9 +324,18 @@ export async function fakeContent(page: Page, initial: FakePage[] = []) {
 
 /** What the mock `/auth/me` answers with. A test can change it while the page is open. */
 /** A membership as `/auth/me` answers; `ownsOrganization` says the person may delete the site (D-039). */
-export type MockMembership = typeof orchard & { ownsOrganization?: boolean }
+export type MockMembership = typeof orchard & {
+  /** The organization the site belongs to, as the API names it since organizations T1. */
+  site: { organizationId?: string }
+  ownsOrganization?: boolean
+}
 
-export type MockSession = { memberships: MockMembership[]; meFails: boolean }
+/** `organizations` left out is the API before organizations (see `profileBody`). */
+export type MockSession = {
+  memberships: MockMembership[]
+  organizations?: MockOrganization[]
+  meFails: boolean
+}
 
 /**
  * Opens the app signed in as the mock person, on one site (or, with `sites: false`, on none), with
@@ -327,10 +361,40 @@ export async function signedInAs(
   await page.route('**/auth/me', (route) =>
     session.meFails
       ? route.abort('connectionrefused')
-      : fulfill(route, 200, profileBody(session.memberships)),
+      : fulfill(route, 200, profileBody(session.memberships, session.organizations)),
   )
   await seedStorage(page, {
     [SESSION_KEY]: JSON.stringify({ accessToken: 'saved-token', expiresAt: inDays(1) }),
+  })
+  return session
+}
+
+/**
+ * Opens the app signed in as the mock person with exactly these memberships and organizations (leave
+ * `organizations` out for the API before them), and anything already in the browser's storage, such
+ * as the organization or site last used. Returns the session the mock `/auth/me` answers from.
+ */
+export async function signedInWith(
+  page: Page,
+  options: {
+    memberships: MockMembership[]
+    organizations?: MockOrganization[]
+    storage?: Record<string, string>
+  },
+): Promise<MockSession> {
+  const session: MockSession = {
+    memberships: options.memberships,
+    organizations: options.organizations,
+    meFails: false,
+  }
+  await page.route('**/auth/me', (route) =>
+    session.meFails
+      ? route.abort('connectionrefused')
+      : fulfill(route, 200, profileBody(session.memberships, session.organizations)),
+  )
+  await seedStorage(page, {
+    [SESSION_KEY]: JSON.stringify({ accessToken: 'saved-token', expiresAt: inDays(1) }),
+    ...options.storage,
   })
   return session
 }
@@ -349,9 +413,10 @@ export const orchardSecond = {
 type SiteBody = { name: string; hostnames: string[]; organizationId?: string }
 
 /**
- * A stand-in for the routes that create a site. A successful `POST /sites` is recorded in `posted`
- * and adds the site to the session, so the next `/auth/me` lists it, as the real API does.
- * `override` works as in `fakeContent`.
+ * A stand-in for the routes that create a site or an organization. A successful `POST /sites` is
+ * recorded in `posted` and adds the site to the session, so the next `/auth/me` lists it, as the real
+ * API does; a successful `POST /organizations` (organizations T2) is recorded in `createdOrganizations`,
+ * added to `organizations` and to the session's. `override` works as in `fakeContent`.
  */
 export async function fakeSites(
   page: Page,
@@ -360,6 +425,8 @@ export async function fakeSites(
 ) {
   const state = {
     posted: [] as SiteBody[],
+    /** The names sent to `POST /organizations`, in order, as sent. */
+    createdOrganizations: [] as string[],
     /** The ids of the sites deleted, in order (D-039). */
     deleted: [] as string[],
     calls: [] as string[],
@@ -384,6 +451,20 @@ export async function fakeSites(
         return route.fulfill({ status: 204 })
       }
       if (method === 'GET') return fulfill(route, 200, { items: organizations })
+      if (method === 'POST' && new URL(request.url()).pathname === '/organizations') {
+        const { name } = request.postDataJSON() as { name: string }
+        state.createdOrganizations.push(name)
+        const organization = {
+          id: `0198f2a0-0000-7000-8000-${String(800 + organizations.length).padStart(12, '0')}`,
+          name: name.trim(),
+        }
+        organizations.push(organization)
+        session.organizations?.push({ ...organization, ownsOrganization: true })
+        session.organizations?.sort(
+          (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+        )
+        return fulfill(route, 201, organization)
+      }
       if (method === 'POST') {
         const body = request.postDataJSON() as SiteBody
         state.posted.push(body)
@@ -394,6 +475,7 @@ export async function fakeSites(
           name: body.name,
           primaryHost: body.hostnames[0] ?? null,
           theme: {},
+          ...(session.organizations ? { organizationId: organization.id } : {}),
         }
         const membership = {
           site,
@@ -886,7 +968,9 @@ export async function fakeInvites(
       } else {
         const typed = typeof body.name === 'string' ? body.name.trim() : ''
         const errors = [
-          ...(typed === '' || typed.length > 100 ? ['name: Enter a name of 1 to 100 characters'] : []),
+          ...(typed === '' || typed.length > 100
+            ? ['name: Enter a name of 1 to 100 characters']
+            : []),
           ...(password.length < 12 ? ['password: Use at least 12 characters'] : []),
         ]
         if (errors.length > 0) return fulfill(route, 400, { message: 'Invalid request', errors })
@@ -895,7 +979,11 @@ export async function fakeInvites(
 
       state.joined.push(invite.email)
       const joined: MockMembership = {
-        site: { ...orchard.site, id: '0198f2a0-0000-7000-8000-0000000000c1', name: invite.siteName },
+        site: {
+          ...orchard.site,
+          id: '0198f2a0-0000-7000-8000-0000000000c1',
+          name: invite.siteName,
+        },
         role: siteRoles[invite.roleName],
         permissions: permissionsOf[invite.roleName],
         ownsOrganization: false,

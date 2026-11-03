@@ -1,18 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ApiError } from './api.ts'
-import type { Membership } from './api.ts'
+import type { Membership, OrganizationSummary } from './api.ts'
 import { reloadProfile, selectSite } from './session.ts'
 import { external, siteUrl } from './site-links.ts'
 import { deleteSite } from './sites-api.ts'
 
-type Props = { memberships: Membership[]; siteId: string | null }
+type Props = {
+  memberships: Membership[]
+  /** Null from an API that predates organizations: the sites are then one flat list. */
+  organizations: OrganizationSummary[] | null
+  siteId: string | null
+}
 
 /**
- * The sites you belong to and your role on each, from your sign-in. A site whose organisation you
- * own can be deleted here, for good, after typing its name (D-039).
+ * The sites you belong to and your role on each, from your sign-in, under the organization each is
+ * in (an organization you own with no site yet is listed too). A site whose organization you own can
+ * be deleted here, for good, after typing its name (D-039).
  */
-export default function Sites({ memberships, siteId }: Props) {
+export default function Sites({ memberships, organizations, siteId }: Props) {
   const navigate = useNavigate()
   const [confirming, setConfirming] = useState<Membership['site'] | null>(null)
   const [typed, setTyped] = useState('')
@@ -51,7 +57,7 @@ export default function Sites({ memberships, siteId }: Props) {
     } catch (error) {
       setBusy(false)
       if (error instanceof ApiError && error.status === 403) {
-        setProblem('Only the owner of the organisation can delete this site.')
+        setProblem('Only the owner of the organization can delete this site.')
       } else if (error instanceof ApiError && error.status === 404) {
         setProblem('This site no longer exists.')
         void reloadProfile().catch(() => {
@@ -75,6 +81,72 @@ export default function Sites({ memberships, siteId }: Props) {
     }
   }
 
+  /** The table of sites in `rows`: Switch, and Delete where the organization is theirs. */
+  function table(rows: Membership[]) {
+    return (
+      <table className="list-table">
+        <thead>
+          <tr>
+            <th scope="col">Site</th>
+            <th scope="col" className="hide-narrow">
+              Address
+            </th>
+            <th scope="col">Your role</th>
+            <th scope="col">
+              <span className="screen-reader-text">Actions</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((membership) => (
+            <tr key={membership.site.id}>
+              <td className="title-col">
+                <strong>{membership.site.name}</strong>
+                {membership.site.primaryHost && (
+                  <div className="row-actions">
+                    <a href={siteUrl(membership.site.primaryHost)} {...external}>
+                      Visit {membership.site.name}
+                    </a>
+                  </div>
+                )}
+              </td>
+              <td className="hide-narrow">
+                {membership.site.primaryHost ? <code>{membership.site.primaryHost}</code> : '—'}
+              </td>
+              <td>{membership.role.name}</td>
+              <td className="action-col">
+                <div className="row-buttons">
+                  {membership.site.id === siteId ? (
+                    <span className="post-state">Current site</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="secondary small"
+                      onClick={() => switchTo(membership.site.id)}
+                    >
+                      Switch to {membership.site.name}
+                    </button>
+                  )}
+                  {membership.ownsOrganization && (
+                    <button
+                      type="button"
+                      className="secondary small danger"
+                      aria-label={`Delete ${membership.site.name}`}
+                      disabled={busy}
+                      onClick={() => askToDelete(membership.site)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+
   return (
     <main>
       <div className="heading-row">
@@ -82,75 +154,55 @@ export default function Sites({ memberships, siteId }: Props) {
         <Link className="button secondary" to="/sites/new">
           Add New Site
         </Link>
+        {organizations !== null && (
+          <Link className="button secondary" to="/organizations/new">
+            Add New Organization
+          </Link>
+        )}
       </div>
       {notice && (
         <p role="status" className="notice">
           {notice}
         </p>
       )}
-      {memberships.length === 0 ? (
+      {organizations === null ? (
+        memberships.length === 0 ? (
+          <p>Your account is not a member of any site yet.</p>
+        ) : (
+          table(memberships)
+        )
+      ) : organizations.length === 0 ? (
         <p>Your account is not a member of any site yet.</p>
       ) : (
-        <table className="list-table">
-          <thead>
-            <tr>
-              <th scope="col">Site</th>
-              <th scope="col" className="hide-narrow">
-                Address
-              </th>
-              <th scope="col">Your role</th>
-              <th scope="col">
-                <span className="screen-reader-text">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {memberships.map((membership) => (
-              <tr key={membership.site.id}>
-                <td className="title-col">
-                  <strong>{membership.site.name}</strong>
-                  {membership.site.primaryHost && (
-                    <div className="row-actions">
-                      <a href={siteUrl(membership.site.primaryHost)} {...external}>
-                        Visit {membership.site.name}
-                      </a>
-                    </div>
+        organizations.map((organization) => {
+          const rows = memberships.filter(
+            (membership) => membership.site.organizationId === organization.id,
+          )
+          return (
+            <section
+              key={organization.id}
+              className="org-group"
+              aria-labelledby={`org-${organization.id}`}
+            >
+              <h2 id={`org-${organization.id}`}>{organization.name}</h2>
+              {rows.length === 0 ? (
+                <p>
+                  No websites yet.
+                  {organization.ownsOrganization && (
+                    <>
+                      {' '}
+                      <Link to={`/sites/new?organization=${encodeURIComponent(organization.id)}`}>
+                        Add your first website
+                      </Link>
+                    </>
                   )}
-                </td>
-                <td className="hide-narrow">
-                  {membership.site.primaryHost ? <code>{membership.site.primaryHost}</code> : '—'}
-                </td>
-                <td>{membership.role.name}</td>
-                <td className="action-col">
-                  <div className="row-buttons">
-                    {membership.site.id === siteId ? (
-                      <span className="post-state">Current site</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="secondary small"
-                        onClick={() => switchTo(membership.site.id)}
-                      >
-                        Switch to {membership.site.name}
-                      </button>
-                    )}
-                    {membership.ownsOrganization && (
-                      <button
-                        type="button"
-                        className="secondary small danger"
-                        aria-label={`Delete ${membership.site.name}`}
-                        disabled={busy}
-                        onClick={() => askToDelete(membership.site)}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </p>
+              ) : (
+                table(rows)
+              )}
+            </section>
+          )
+        })
       )}
 
       {confirming && (

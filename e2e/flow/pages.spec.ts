@@ -203,8 +203,12 @@ test('[UC-CS-06] pages belong to one site: another site does not list them or op
   await page.goto(`/pages/${made.id}`)
   await expect(page.getByRole('heading', { level: 1, name: `Orchard only ${token}` })).toBeVisible()
 
-  // Changing site on a page's screen leaves it for the list, which is the other site's own.
-  await page.getByLabel('Site').selectOption(maple.siteId)
+  // Changing organization (each client is one) on a page's screen opens the other one's site and
+  // leaves the page for the list, which is that site's own.
+  await page
+    .getByRole('banner')
+    .getByLabel('Organization', { exact: true })
+    .selectOption(maple.organizationId)
   await expect(page).toHaveURL(/\/pages$/)
   await expect(page.getByRole('row', { name: /^Home/ })).toBeVisible()
   await expect(page.getByRole('link', { name: `Orchard only ${token}` })).toHaveCount(0)
