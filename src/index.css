@@ -1583,3 +1583,53 @@ fieldset.group legend {
 .address-input input {
   flex: 1;
 }
+
+/* The Users screen: its messages stay in view on a long list (Users.tsx) */
+.notice.pinned {
+  position: sticky;
+  top: calc(var(--bar-height) + 8px);
+  z-index: 3;
+}
+
+.list-heading {
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Half the width for the name and email, so a phone wraps Remove under the role, not the email. */
+.people th:first-child {
+  width: 50%;
+}
+
+.member-role {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.long-word {
+  overflow-wrap: anywhere;
+}
+
+/* An invite's link, whole, then Copy (InviteLink.tsx). Clicking the link selects it for copying by hand. */
+.invite-link {
+  max-width: 40rem;
+  scroll-margin-top: calc(var(--bar-height) + 8px);
+}
+
+.invite-link-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.invite-link-row code {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}

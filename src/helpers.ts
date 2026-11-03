@@ -55,6 +55,14 @@ export function formatDate(iso: string): string {
   })
 }
 
+/** "26 Oct, 14:30", in the viewer's own time: for a moment they must act before. */
+export function formatMoment(iso: string): string {
+  const moment = new Date(iso)
+  const day = moment.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const time = moment.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  return `${day}, ${time}`
+}
+
 /** What to show after a save or create failed: lines the API listed by field go next to their field, the rest is one message. */
 export type FormProblems = {
   fields: Record<string, string>

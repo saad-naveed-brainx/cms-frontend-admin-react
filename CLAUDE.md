@@ -51,7 +51,7 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
   route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
-  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/sites` and `/sites/new`). The page list keeps its filters and
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites` and `/sites/new`). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
 - **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (site or
   Site switcher, New site only for someone who owns an organisation (`ownsAnOrganization`; a person with no sites reaches it through Sites › Add New), "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
@@ -119,6 +119,17 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   makes the menu ask for the types again, so its entry (All …, Add New) is there at once. A taken name or address (409)
   is said as the API says it. Nothing about a type can be changed afterwards. Flow person Tia (`typer`) makes one, since it
   changes her site's menu.
+- **Users** (`/users`, `Users.tsx`, `AddUser.tsx`, `InviteLink.tsx`, `members-api.ts`, users-roles T5): "Users" in the menu only
+  with `members.manage`; opened without it, the screen says so and asks the API nothing. Everyone at once, no pages: people
+  (a role saves as soon as it is chosen; Remove asks with `window.confirm`) and waiting invites ("Link works until …" in the
+  viewer's own time, `formatMoment()` in `helpers.ts`, or "Expired"; New link; Cancel, which does not ask). One change at a time:
+  every control is disabled while it runs. Refusals are said in the API's words; messages are `.notice.pinned`, so they
+  stay in view far down the list. After changing yourself, `reloadProfile()` (plan D11); removing yourself moves you to
+  another site, which starts the screen afresh, so that notice rides in the history entry. **Add New** (`/users/new`) is an
+  email and a role (starting at the least, the last the API lists), and a 400 or 409 goes next to the email box. Only an empty
+  box is checked here. The link is `${location.origin}/invite#${token}` (plan D4): the API gives the secret once and keeps a
+  fingerprint, so `InviteLink` is the only place it is ever seen, and it opens in view with Copy focused (QA lesson
+  2026-10-09). Without a clipboard (a page not on https) it says to copy by hand. The stand-in is `fakeMembers`.
 - **Choosing a library picture** (`MediaPicker.tsx`, MED-03): a native modal `<dialog>` ("Choose a picture", "Choose a logo")
   with the library's grid; clicking a picture chooses it, "Upload a new picture" (with `media.upload`) adds one and chooses
   it, Escape or Cancel closes it. Render it only while choosing (`{open && <MediaPicker … />}`): it opens on mount and
