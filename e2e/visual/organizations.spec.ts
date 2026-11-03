@@ -1,14 +1,15 @@
 import { expect, test } from '@playwright/test'
-import { cafe, kettle, ownerMemberships, theTeam, wholesale } from '../support/company.ts'
-import type { FakeTeam } from '../support/mock-api.ts'
-import { fakeContent, fakeSites, fakeTeam, signedInWith } from '../support/mock-api.ts'
+import { cafe, kettle, ownerMemberships, shop, theTeam, wholesale } from '../support/company.ts'
+import type { FakeInvite, FakeTeam } from '../support/mock-api.ts'
+import { fakeContent, fakeInvites, fakeSites, fakeTeam, signedInWith } from '../support/mock-api.ts'
 
 /**
- * Screenshots of the organization screens against the approved baselines (organizations T7): the Team
- * screen, Add person with its link, New organization, the Sites screen grouped by organization, and the
- * top bar with both switchers, at phone, tablet and desktop width. The API's answers are replaced, with
- * the same data and the same dates every time, so the pictures do not change between runs; the whole
- * journey is tested in e2e/flow/. The invite link holds the admin's own address (its port), so it is masked.
+ * Screenshots of the organization screens against the approved baselines (organizations T7, T8): the Team
+ * screen, Add person with its link, New organization, the Sites screen grouped by organization, the
+ * top bar with both switchers, and the invite page for a link of several websites, at phone, tablet and
+ * desktop width. The API's answers are replaced, with the same data and the same dates every time, so the
+ * pictures do not change between runs; the whole journey is tested in e2e/flow/. The invite link holds the
+ * admin's own address (its port), so it is masked.
  */
 
 const FIXED = '2030-06-15T09:30:00.000Z'
@@ -128,6 +129,43 @@ for (const width of [375, 768, 1280]) {
         .selectOption(other.id)
       await expect(page.getByRole('heading', { level: 1, name: 'No websites yet' })).toBeVisible()
       await expect(page).toHaveScreenshot(`no-websites-${width}.png`)
+    })
+
+    test('[UC-OR-33] the invite page for a link of several websites looks as approved, also with a part no longer valid', async ({
+      page,
+    }) => {
+      const part = (
+        token: string,
+        site: { id: string; name: string },
+        roleName: 'Editor' | 'Viewer' | 'Contributor',
+      ): FakeInvite => ({
+        token,
+        siteId: site.id,
+        siteName: site.name,
+        organization: { id: kettle.id, name: kettle.name },
+        roleName,
+        email: 'nina.novak-westerbergh@a-company-with-a-long-name.example.test',
+        hasAccount: false,
+      })
+      await fakeInvites(page, [
+        part('visual-cafe', cafe, 'Editor'),
+        part('visual-shop', shop, 'Viewer'),
+        part(
+          'visual-long',
+          { id: wholesale.id, name: 'Kettle & Crumb Wholesale and Catering, Northern Region' },
+          'Contributor',
+        ),
+      ])
+
+      await page.goto('/invite#visual-cafe.visual-shop.visual-long')
+      await expect(page.getByRole('heading', { name: /^You're invited to/ })).toBeVisible()
+      await expect(page.getByRole('listitem')).toHaveCount(3)
+      await expect(page).toHaveScreenshot(`invite-several-${width}.png`, { fullPage: true })
+
+      // One secret the API no longer knows: the rest is offered, and the page says so above the list.
+      await page.goto('/invite#visual-cafe.visual-gone.visual-shop')
+      await expect(page.getByText('One part of this invite is no longer valid.')).toBeVisible()
+      await expect(page).toHaveScreenshot(`invite-several-lost-${width}.png`, { fullPage: true })
     })
   })
 }

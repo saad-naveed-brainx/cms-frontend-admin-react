@@ -884,6 +884,12 @@ export async function fakeMembers(
 export type FakeInvite = {
   token: string
   siteName: string
+  /**
+   * The site's id and its organization, as the lookup answers them since organizations T1. Left out, the
+   * lookup answers as the API did before (no ids), and the joined site gets the stand-in's one id.
+   */
+  siteId?: string
+  organization?: { id: string; name: string }
   roleName: RoleName
   email: string
   hasAccount: boolean
@@ -906,8 +912,13 @@ const permissionsOf: Record<RoleName, string[]> = {
  * /invitations/accept` joins. A new email needs a name and a password of at least 12 characters (else
  * a 400 that names the field); an existing account needs its password: a wrong one is a 401, or a 409
  * when a name came with it (the account appeared after the page opened). A link it does not know is
- * the one 404 every dead link gets. While `paused` is set, an existing account's accept is the
- * sign-in limit's 429. `calls` records each request's body and `joined` the emails that got in.
+ * the one 404 every dead link gets, which an invite is once it has been accepted (the real API uses it
+ * up). While `paused` is set, an existing account's accept is the sign-in limit's 429. `calls` records
+ * each request's body and `joined` the emails that got in.
+ *
+ * A link of several websites is several invites for one email (organizations T8): an account made by
+ * the first accept is the account of the others, which then want its password and no name, and each
+ * accept answers with every website that email has joined so far.
  */
 export async function fakeInvites(
   page: Page,
@@ -920,6 +931,13 @@ export async function fakeInvites(
     calls: [] as { path: string; body: Record<string, unknown> }[],
     joined: [] as string[],
     paused: false,
+    /** What each email has joined through this stand-in, in order. */
+    sites: new Map<
+      string,
+      { membership: MockMembership; organization?: FakeInvite['organization'] }[]
+    >(),
+    /** The accounts made here, by email: their later accepts send the password and are answered with the name. */
+    accounts: new Map<string, { password: string; name: string }>(),
   }
 
   await page.route(
@@ -939,7 +957,11 @@ export async function fakeInvites(
       }
       if (pathname === '/invitations/lookup') {
         return fulfill(route, 200, {
-          site: { name: invite.siteName },
+          site: {
+            ...(invite.siteId === undefined ? {} : { id: invite.siteId }),
+            name: invite.siteName,
+          },
+          ...(invite.organization === undefined ? {} : { organization: invite.organization }),
           role: { name: invite.roleName },
           email: invite.email,
           hasAccount: invite.hasAccount,
@@ -948,7 +970,8 @@ export async function fakeInvites(
       }
 
       const password = typeof body.password === 'string' ? body.password : ''
-      let name = person.name
+      const made = state.accounts.get(invite.email)
+      let name = made?.name ?? person.name
       if (invite.hasAccount) {
         if (state.paused) {
           return fulfill(route, 429, {
@@ -957,7 +980,7 @@ export async function fakeInvites(
             message: 'Too many sign-in attempts. Try again in 15 minutes.',
           })
         }
-        if (password !== accountPassword) {
+        if (password !== (made?.password ?? accountPassword)) {
           return body.name === undefined
             ? fulfill(route, 401, { statusCode: 401, message: 'Invalid email or password' })
             : fulfill(route, 409, {
@@ -981,19 +1004,41 @@ export async function fakeInvites(
       const joined: MockMembership = {
         site: {
           ...orchard.site,
-          id: '0198f2a0-0000-7000-8000-0000000000c1',
+          id: invite.siteId ?? '0198f2a0-0000-7000-8000-0000000000c1',
           name: invite.siteName,
+          ...(invite.organization === undefined ? {} : { organizationId: invite.organization.id }),
         },
         role: siteRoles[invite.roleName],
         permissions: permissionsOf[invite.roleName],
         ownsOrganization: false,
       }
+      const sofar = [
+        ...(state.sites.get(invite.email) ?? []),
+        { membership: joined, organization: invite.organization },
+      ]
+      state.sites.set(invite.email, sofar)
+
+      // The invite is used up; an account made now is the account of the same email's other invites.
+      state.invites.splice(state.invites.indexOf(invite), 1)
+      if (!invite.hasAccount) {
+        state.accounts.set(invite.email, { password, name })
+        for (const other of state.invites) if (other.email === invite.email) other.hasAccount = true
+      }
+
+      const organizations = [
+        ...new Map(
+          sofar.flatMap(({ organization }) =>
+            organization ? [[organization.id, organization]] : [],
+          ),
+        ).values(),
+      ].map((organization) => ({ ...organization, ownsOrganization: false }))
       return fulfill(route, 200, {
         accessToken: `invited-${invite.token}`,
         tokenType: 'Bearer',
         expiresAt: inDays(7),
         user: { id: '0198f2a0-0000-7000-8000-0000000000e1', email: invite.email, name },
-        memberships: [...(invite.alsoMemberOf ?? []), joined],
+        memberships: [...(invite.alsoMemberOf ?? []), ...sofar.map(({ membership }) => membership)],
+        ...(organizations.length > 0 ? { organizations } : {}),
       })
     },
   )

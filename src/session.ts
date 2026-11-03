@@ -227,11 +227,12 @@ async function start(): Promise<void> {
 /**
  * Makes the person a sign-in has just answered for the signed-in one, replacing whoever was. `joined`
  * names the site an invite was for, so they land on it and not on the site last worked on in this
- * browser (which may have been someone else's).
+ * browser (which may have been someone else's): by its id when the invite lookup gave one, else, for an
+ * API that predates it, by name and role (organizations T1, B-45).
  */
 export function startSession(
   result: LoginResult,
-  joined?: { siteName: string; roleName: string },
+  joined?: { siteId?: string; siteName: string; roleName: string },
 ): void {
   generation += 1
   token = result.accessToken
@@ -241,9 +242,10 @@ export function startSession(
   )
   const landing =
     joined &&
-    result.memberships.find(
-      (membership) =>
-        membership.site.name === joined.siteName && membership.role.name === joined.roleName,
+    result.memberships.find((membership) =>
+      joined.siteId !== undefined
+        ? membership.site.id === joined.siteId
+        : membership.site.name === joined.siteName && membership.role.name === joined.roleName,
     )
   if (landing) {
     storageSet(SITE_KEY, landing.site.id)

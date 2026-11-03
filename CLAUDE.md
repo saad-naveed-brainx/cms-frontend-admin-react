@@ -169,19 +169,31 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   box is checked here. The link is `${location.origin}/invite#${token}` (plan D4): the API gives the secret once and keeps a
   fingerprint, so `InviteLink` is the only place it is ever seen, and it opens in view with Copy focused (QA lesson
   2026-10-09). Without a clipboard (a page not on https) it says to copy by hand. The stand-in is `fakeMembers`.
-- **The invite page** (`/invite#<secret>`, `Invite.tsx`, `invites-api.ts`, users-roles T7): the one page `App.tsx` shows **before**
+- **The invite page** (`/invite#<secret>` or `#<secret>.<secret>`, `Invite.tsx`, `invites-api.ts`, users-roles T7, organizations T8): the one page `App.tsx` shows **before**
   the session decides, and whoever is signed in does not matter yet (it is keyed by the `#` part, so another link typed over
   it starts it afresh). It asks the open `POST /invitations/lookup` what the link is for, then shows "You're invited to
   <site> as <role>": a new email gets Name and Password (at least 12, as the API says; one box with a Show button), an
   existing account only its Password. Joining calls `POST /invitations/accept`, which answers as sign-in does;
-  `startSession(result, invite)` in `session.ts` stores it and selects the invited site (matched by site and role name:
-  the answer carries no site id) and the page goes to `/`, so the secret leaves the address bar. Every failure is one case
+  `startSession(result, invite)` in `session.ts` stores it and selects the invited site (by its id, which the lookup answers
+  since organizations T1; an API that predates it is matched by site and role name, B-45) and the page goes to `/`, so the secret leaves the address bar. Every failure is one case
   of `Accepted`: a dead link (all the same 404), a wrong password (401), an account made since the page opened (409, the
   page then asks only for the password), a pause (429, the API's own sentence) and the API's 400 lines. If someone is
   signed in, the page says so first and joining replaces their session. `signIn()` answers `{ outcome }`, with `paused`
   and the API's message for a 429, which the sign-in screen shows as it is while keeping the email. The stand-in is
   `fakeInvites`; the whole journey on the real API is `e2e/flow/invite.spec.ts` (flow person Ola, `inviter`). The Add New
   screenshot masks the link, which holds the admin's own port.
+  **A link of several websites** (`#<secret>.<secret>`, D-055, made by Add person) is split by `secretsOf` in `invites-api.ts`: empty
+  and repeated parts are ignored, and more than 20 secrets, or secrets made for different emails or organizations, are a dead link
+  (the usual words, and the API is not asked about the 21). Each part is looked up (`Promise.all`); a part the API no longer knows is
+  left out and the page says "One part of this invite is no longer valid." (all dead is the usual dead link). With several, the heading
+  names the organization and the list says "<website> as <role>"; one secret is as it always was. Joining goes part by part: a new
+  person's first accept sends the name and password and the later ones the password only; for an existing account a wrong password is
+  tried on the first part only (one request, "Password is incorrect."), so the sign-in limit is not used once for every website. After
+  one website worked, a later one failing leaves the person signed in with what they have, on the first website joined, and the Dashboard
+  says "You joined A, but not B. Open the link again." (`notice` in the navigation state, read by `Overview.tsx`). Opened again, the
+  link offers what is left and asks for the password only. `fakeInvites` models several secrets for one email (an account made by the
+  first accept is the account of the rest; an accepted invite is used up); the whole company journey on the real API is
+  `e2e/flow/organizations.spec.ts` (flow person Hal, `founder`).
 - **Choosing a library picture** (`MediaPicker.tsx`, MED-03): a native modal `<dialog>` ("Choose a picture", "Choose a logo")
   with the library's grid; clicking a picture chooses it, "Upload a new picture" (with `media.upload`) adds one and chooses
   it, Escape or Cancel closes it. Render it only while choosing (`{open && <MediaPicker … />}`): it opens on mount and

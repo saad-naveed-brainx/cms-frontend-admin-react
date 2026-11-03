@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import type { Membership, User } from './api.ts'
 import FrontPageNotice from './FrontPageNotice.tsx'
 import { listPath } from './helpers.ts'
@@ -7,13 +7,22 @@ import { useSignedIn } from './useSignedIn.ts'
 
 type Props = { user: User; membership: Membership }
 
-/** The Dashboard, the first screen after signing in: which site, who you are there, what your role allows, and where to start. */
+/**
+ * The Dashboard, the first screen after signing in: which site, who you are there, what your role allows, and where to start.
+ * A notice can ride in with the navigation (the invite page's "You joined A, but not B", organizations T8).
+ */
 export default function Overview({ user, membership }: Props) {
   const { canCreate, siteHost } = useSignedIn()
+  const notice = (useLocation().state as { notice?: string } | null)?.notice
 
   return (
     <main>
       <h1>Dashboard</h1>
+      {notice && (
+        <p role="status" className="notice warning">
+          {notice}
+        </p>
+      )}
       <FrontPageNotice />
       <section className="welcome-panel" aria-labelledby="welcome-heading">
         <h2 id="welcome-heading">{membership.site.name}</h2>
