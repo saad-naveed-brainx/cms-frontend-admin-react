@@ -13,9 +13,11 @@ import {
   Plus,
   Shapes,
   Users as UsersIcon,
+  UsersRound,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router'
+import AddPerson from './AddPerson.tsx'
 import AddUser from './AddUser.tsx'
 import type { Membership, OrganizationSummary, User } from './api.ts'
 import Appearance from './Appearance.tsx'
@@ -35,6 +37,7 @@ import PagesList from './PagesList.tsx'
 import { selectOrganization, selectSite, signOut } from './session.ts'
 import { external, siteUrl } from './site-links.ts'
 import Sites from './Sites.tsx'
+import Team from './Team.tsx'
 import { useSignedIn } from './useSignedIn.ts'
 import Users from './Users.tsx'
 
@@ -195,6 +198,9 @@ export default function Shell({ user, memberships, organizations, organizationId
           />
           <Route path="/sites/new" element={<NewSite />} />
           <Route path="/organizations/new" element={<NewOrganization />} />
+          {/* The company team is about the organization, so a person whose organization has no site can reach it. */}
+          <Route path="/team" element={<Team key={organizationId ?? 'none'} />} />
+          <Route path="/team/new" element={<AddPerson key={organizationId ?? 'none'} />} />
           {current && (
             <>
               {/* Keyed by site, so changing site loads that site's pages from scratch. */}
@@ -230,7 +236,13 @@ type Entry = {
 /** The left menu. Keyed by site by its parent, so another site's content types are loaded afresh. */
 function AdminMenu({ hasSite }: { hasSite: boolean }) {
   const location = useLocation()
-  const { canCreate, canManageMembers, canManageSettings, canManageTypes } = useSignedIn()
+  const {
+    canCreate,
+    canManageMembers,
+    canManageSettings,
+    canManageTypes,
+    ownsCurrentOrganization,
+  } = useSignedIn()
   // null: the types could not be loaded, so one entry lists every type instead.
   const [types, setTypes] = useState<PageType[] | null | undefined>(undefined)
 
@@ -325,6 +337,19 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
       })
     }
   }
+  // The company team: the organization's owner's (the API decides, invariant 3).
+  if (ownsCurrentOrganization) {
+    entries.push({
+      label: 'Team',
+      to: '/team',
+      icon: UsersRound,
+      current: path.startsWith('/team'),
+      sub: [
+        { label: 'All people', to: '/team', current: path === '/team' },
+        { label: 'Add person', to: '/team/new', current: path === '/team/new' },
+      ],
+    })
+  }
   entries.push({
     label: 'Sites',
     to: '/sites',
@@ -394,9 +419,11 @@ function NoSites({ organization }: { organization: OrganizationSummary | null })
       )}
       <p>{organization.name} has no websites yet.</p>
       {organization.ownsOrganization && (
-        <Link className="button" to="/sites/new">
-          Add your first website
-        </Link>
+        <div className="actions">
+          <Link className="button" to="/sites/new">
+            Add your first website
+          </Link>
+        </div>
       )}
     </main>
   )

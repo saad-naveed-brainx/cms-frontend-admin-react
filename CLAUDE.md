@@ -51,7 +51,7 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
   route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
-  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites`, `/sites/new` and `/organizations/new`;
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites`, `/sites/new`, `/organizations/new`, `/team` and `/team/new`;
   `/invite` is shown by `App.tsx` before any of this). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
 - **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (Organization
@@ -92,6 +92,23 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   (`.two-switchers .bar-optional`); they are on the Dashboard and the Sites screen. The visible word is "organization" (the older
   screens said "organisation"; changed with the three New site screenshots). The real-API flow tests reach a site through
   `openSite()` in `e2e/flow/support.ts`, which sets the remembered site and reloads, since each client there is its own organization.
+- **The company team** (`/team`, `Team.tsx`, `/team/new`, `AddPerson.tsx`, `team-api.ts`, organizations T7, `../docs/DECISIONS.md`
+  D-054, D-055): "Team" in the menu only when the organization being worked in is the person's own (`ownsCurrentOrganization` in
+  `useSignedIn`; the API decides, invariant 3), and about the organization, not one site, so it is routed even when it has no site.
+  Opened by anyone else the screens say they are for the owner and ask the API nothing. **Team** is `GET /organizations/:id/team`
+  (everyone at once): each person once with their websites and roles (a website's name leads to that website's Users screen:
+  `selectSite` then `/users`), the owner marked, and the waiting invitations ("Link works until …" in the viewer's own time, or
+  "Expired"); a 500 or no connection is "Couldn't load the team." with Try again, a 403 and a 404 are said in words. Nothing is
+  changed there. **Add person** is an email, the organization's websites as checkboxes each with a "Role for <website>" box (starting
+  at the least access, the last the API lists), and **Make invite link**: one `POST /invitations` per ticked website, each with that
+  website's id as `X-Site-Id` (`authed(path, { siteId })`, `createInvitation(body, siteId)`), one after another, and one link
+  `${location.origin}/invite#<secret>.<secret>` (`inviteLink` joins them with `.`, D-055) in `InviteLinkBox`, in view with Copy
+  focused. A website where the typed email already has access says "Already has access" and cannot be ticked; one with a waiting
+  invitation is replaced, and the box says the earlier link stops working. The email is sent trimmed and in lower case. **When one
+  website fails** the link for the ones that were made is shown, "The link above does not cover <website>." names the website with
+  the API's words, and **Try again for <website>** makes that one alone, with a link of its own; a 401 ends the session and the
+  sign-in screen replaces the page. The button is in a bar along the bottom (`.sticky-actions`), so it is in view on a long list. The
+  stand-ins are `fakeTeam` (the team and `/invitations` for any website) and the fixtures in `e2e/support/company.ts`.
 - **New site** (`/sites/new`, `NewSite.tsx`, `sites-api.ts`) is about the person, not one site, so it is
   routed even when they belong to none. The organization is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new

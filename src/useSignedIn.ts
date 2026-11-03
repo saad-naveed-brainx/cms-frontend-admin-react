@@ -26,6 +26,7 @@ export function useSignedIn() {
       siteTheme: {} as unknown,
       canCreate: false,
       ownsAnOrganization: false,
+      ownsCurrentOrganization: false,
       canManageSettings: false,
       canUpload: false,
       canManageTypes: false,
@@ -58,6 +59,11 @@ export function useSignedIn() {
       state.organizations === null
         ? state.memberships.some((m) => m.ownsOrganization === true)
         : state.organizations.some((organization) => organization.ownsOrganization),
+    /** Whether the organization being worked in is the person's own: the company team (Team) is its owner's. */
+    ownsCurrentOrganization:
+      state.organizations?.some(
+        (organization) => organization.id === state.organizationId && organization.ownsOrganization,
+      ) ?? false,
     /** The site's name, header, footer and look (Appearance, GOV-04). */
     canManageSettings: permissions.includes(SETTINGS_MANAGE),
     /** Adding pictures to the media library (MED-01). */

@@ -999,3 +999,83 @@ export async function fakeInvites(
   )
   return state
 }
+
+// ---- the company team (organizations T3, T7) ----
+
+export type FakeTeam = {
+  organization: { id: string; name: string }
+  websites: { id: string; name: string; roles: { id: string; name: string }[] }[]
+  people: {
+    userId: string
+    name: string
+    email: string
+    isOwner: boolean
+    access: { siteId: string; role: { id: string; name: string } }[]
+  }[]
+  invitations: {
+    id: string
+    email: string
+    siteId: string
+    role: { id: string; name: string }
+    expiresAt: string
+    expired: boolean
+  }[]
+}
+
+/**
+ * A stand-in for `GET /organizations/:id/team` and for `POST /invitations` on any of the organization's
+ * websites (the site is the `X-Site-Id` header). `posted` records each invitation asked for, in order;
+ * a successful one is added to the team's waiting invitations (replacing a waiting one for the same
+ * website and email) and answered with a link secret `secret-N`. `override` works as in `fakeContent`.
+ */
+export async function fakeTeam(page: Page, initial: FakeTeam) {
+  const state = {
+    team: initial,
+    calls: [] as string[],
+    posted: [] as { siteId: string; email: string; roleId: string }[],
+    /** When the invitations it makes expire (an ISO time); 7 days from now when left out. */
+    expiresAt: null as string | null,
+    override: null as Handler | null,
+  }
+
+  await page.route(
+    (url) =>
+      url.port === String(flowApiPort) &&
+      (/^\/organizations\/[^/]+\/team$/.test(url.pathname) || url.pathname === '/invitations'),
+    async (route, request) => {
+      const { pathname } = new URL(request.url())
+      state.calls.push(`${request.method()} ${pathname}`)
+      if (state.override && (await state.override(route, request))) return
+
+      if (request.method() === 'GET') return fulfill(route, 200, state.team)
+
+      const siteId = request.headers()['x-site-id'] ?? ''
+      const { email, roleId } = request.postDataJSON() as { email: string; roleId: string }
+      state.posted.push({ siteId, email, roleId })
+      const role = state.team.websites
+        .find((website) => website.id === siteId)
+        ?.roles.find((one) => one.id === roleId)
+      if (!role)
+        return fulfill(route, 400, { message: 'That role is not one of this site’s roles.' })
+      const invitation = {
+        id: `0198f2a0-0000-7000-8000-${String(700 + state.posted.length).padStart(12, '0')}`,
+        email,
+        siteId,
+        role,
+        expiresAt: state.expiresAt ?? inDays(7),
+        expired: false,
+      }
+      state.team.invitations = [
+        ...state.team.invitations.filter(
+          (waiting) => !(waiting.siteId === siteId && waiting.email === email),
+        ),
+        invitation,
+      ]
+      return fulfill(route, 201, {
+        invitation: { ...invitation, invitedBy: null, createdAt: new Date().toISOString() },
+        token: `secret-${state.posted.length}`,
+      })
+    },
+  )
+  return state
+}

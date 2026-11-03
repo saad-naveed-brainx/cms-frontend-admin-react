@@ -166,15 +166,22 @@ function endSession(notice: string | null): void {
 
 /**
  * Calls the API as the signed-in person: the token and the chosen site go with the request, and a
- * 401 ends the session. Every screen that needs the API goes through here.
+ * 401 ends the session. Every screen that needs the API goes through here. `siteId` is for the one
+ * call about another site than the one being worked on (the company team makes an invitation for each
+ * website it names, organizations T7).
  */
 export async function authed(
   path: string,
-  options: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown } = {},
+  options: {
+    method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+    body?: unknown
+    siteId?: string
+  } = {},
 ): Promise<unknown> {
-  const siteId = state.status === 'signed-in' ? state.siteId : storageGet(SITE_KEY)
+  const { siteId: forSite, ...rest } = options
+  const siteId = forSite ?? (state.status === 'signed-in' ? state.siteId : storageGet(SITE_KEY))
   try {
-    return await request(path, { ...options, token, siteId })
+    return await request(path, { ...rest, token, siteId })
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) endSession(ENDED_NOTICE)
     throw error

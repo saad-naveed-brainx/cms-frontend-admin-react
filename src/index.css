@@ -952,6 +952,41 @@ html {
   margin: 12px 0 0;
 }
 
+/* Add person: the button stays in view on a long list of websites (QA lesson 2026-10-09) */
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  box-shadow: 0 -1px 3px var(--wp-shadow);
+}
+
+.website-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.website-row select {
+  max-width: 100%;
+}
+
+.team-access {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 /* The search engines box (SEO-01): a search result preview, then the fields */
 .seo-inside {
   display: flex;
