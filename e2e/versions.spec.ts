@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import {
   fakeContent,
   fakePage,
@@ -130,6 +130,47 @@ test('[UC-VH-26] the list is newest first, with when and who, and the newest is 
   await expect(rows.nth(0)).toHaveAttribute('aria-pressed', 'true')
   await expect(rows.nth(1)).toHaveAttribute('aria-pressed', 'false')
   await expect(page.getByText('3 versions')).toBeVisible()
+})
+
+/**
+ * The contrast between a row's text and its own background (WCAG 2: 4.5 is the lowest that reads
+ * well). Computed from the styles the browser really applies, because the page turns a button's text
+ * white on hover and a row that goes pale would otherwise end up white on white.
+ */
+const contrastOf = (row: Locator) =>
+  row.evaluate((element) => {
+    const channels = (value: string) =>
+      value
+        .match(/[\d.]+/g)!
+        .slice(0, 3)
+        .map(Number)
+    const luminance = ([r, g, b]: number[]) => {
+      const lin = (c: number) =>
+        c / 255 <= 0.03928 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4
+      return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+    }
+    const style = getComputedStyle(element)
+    const text = luminance(channels(style.color))
+    const ground = luminance(channels(style.backgroundColor))
+    return (Math.max(text, ground) + 0.05) / (Math.min(text, ground) + 0.05)
+  })
+
+test('[UC-VH-26] a version’s text stays readable while it is hovered and while it is chosen', async ({
+  page,
+}) => {
+  const { item } = await open(page, [fakeVersion(3), fakeVersion(2), fakeVersion(1)])
+  await page.goto(`/pages/${item.id}/versions`)
+  const rows = versionRows(page)
+  await expect(rows).toHaveCount(3)
+
+  await page.mouse.move(0, 0)
+  expect(await contrastOf(rows.nth(1))).toBeGreaterThan(4.5) // at rest
+  await rows.nth(2).hover()
+  expect(await contrastOf(rows.nth(2))).toBeGreaterThan(4.5) // hovered
+  await rows.nth(2).click()
+  expect(await contrastOf(rows.nth(2))).toBeGreaterThan(4.5) // chosen, still hovered
+  await page.mouse.move(0, 0)
+  expect(await contrastOf(rows.nth(2))).toBeGreaterThan(4.5) // chosen, at rest
 })
 
 test('[UC-VH-27] many versions: the first 20, then older ones on request', async ({ page }) => {

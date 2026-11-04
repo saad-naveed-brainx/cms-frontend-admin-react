@@ -1734,11 +1734,15 @@ fieldset.group legend {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
+  /* A button centres its content and keeps it on one line; a row of text starts at the left and may wrap. */
+  justify-content: flex-start;
   gap: 2px 10px;
   width: 100%;
   min-height: 40px;
   padding: 6px 10px;
   font: inherit;
+  line-height: 1.5;
+  white-space: normal;
   text-align: left;
   color: var(--wp-text);
   background: var(--wp-box);
@@ -1747,12 +1751,14 @@ fieldset.group legend {
   cursor: pointer;
 }
 
-.version-row:hover {
+/* The page's own hover turns a button's text white on blue; these rows go pale, so their text stays dark. */
+.version-row:hover,
+.version-row[aria-pressed='true'] {
+  color: var(--wp-text);
   background: var(--wp-stripe);
 }
 
 .version-row[aria-pressed='true'] {
-  background: var(--wp-stripe);
   border-color: var(--wp-blue);
   box-shadow: inset 3px 0 0 var(--wp-blue);
 }

@@ -1,16 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useLocation, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { ApiError, isRecord } from './api.ts'
 import BlocksEditor from './BlocksEditor.tsx'
 import LivePreview from './LivePreview.tsx'
 import { blockName, draftsFrom, focusField } from './block-drafts.ts'
 import type { Draft } from './block-drafts.ts'
 import { cleanBlock, sameBlocks, validateBlocks } from './block-schemas.ts'
-import { describeFailure, formatDate, listPath, pluralLabel, statusLabel } from './helpers.ts'
+import {
+  describeFailure,
+  formatDate,
+  formatMoment,
+  listPath,
+  pluralLabel,
+  statusLabel,
+} from './helpers.ts'
 import { useLeaveGuard } from './leave-guard.ts'
-import { fetchPage, publishPage, requestPreview, savePage, unpublishPage } from './pages-api.ts'
-import type { Page } from './pages-api.ts'
+import {
+  fetchPage,
+  fetchVersion,
+  publishPage,
+  requestPreview,
+  savePage,
+  unpublishPage,
+} from './pages-api.ts'
+import type { Page, Version } from './pages-api.ts'
 import SeoBox from './SeoBox.tsx'
 import { seoChanges, seoDraftFrom, validateSeo } from './seo-fields.ts'
 import type { SeoDraft, SeoField } from './seo-fields.ts'
@@ -23,10 +37,32 @@ type Loaded = { status: 'not-found' } | { status: 'error' } | { status: 'ready';
 /** The last answer, and which request it was for: an answer for an older request counts as still loading. */
 type Answer = { key: string; loaded: Loaded }
 
+/**
+ * What a restore (`?restore=<versionId>`, version-history T4, D-058) found: the version, or that it
+ * could not be read. A version that is word for word the page as saved changes nothing in the boxes.
+ */
+type Restoring = Version | 'failed' | null
+
+function sameContent(page: Page, version: Version): boolean {
+  return (
+    version.title === page.title &&
+    sameBlocks(version.blocks, page.blocks) &&
+    Object.keys(seoChanges(seoDraftFrom(version), page)).length === 0
+  )
+}
+
+const restoreNotice = (restoring: Restoring, already: boolean): string =>
+  restoring === null || restoring === 'failed'
+    ? "Couldn't load that version. The page is as last saved."
+    : already
+      ? 'That is the version this page has now.'
+      : `The version from ${formatMoment(restoring.savedAt)} is loaded. Nothing changes until you press Save.`
+
 /** One page: its title, its blocks and its search fields change here; its type, address and status are shown, and it can be published. The rest arrives with its own tickets. */
 export default function EditPage() {
   const { id = '' } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const { mayEdit, mayPublish, siteHost, siteName, siteTheme } = useSignedIn()
 
   const [answer, setAnswer] = useState<Answer | null>(null)
@@ -60,15 +96,37 @@ export default function EditPage() {
 
   useEffect(() => {
     let cancelled = false
+    // A restore asked for by the address is read once the page is, and the boxes are filled once, with
+    // the version: the saved page is never shown for a moment first, and nothing typed meanwhile can
+    // be overwritten. The page stays the baseline, so what differs from it is unsaved, Save sends only
+    // that, and leaving asks first. Read from the address now, not through the router, so taking the
+    // parameter out of it does not load the page again.
+    const versionId = new URLSearchParams(window.location.search).get('restore')
     fetchPage(id)
-      .then((page) => {
+      .then(async (page) => {
+        // Only someone who may edit the page is shown its versions (the API refuses anyone else).
+        const restoring: Restoring =
+          versionId === null
+            ? null
+            : mayEdit(page.createdBy)
+              ? await fetchVersion(id, versionId).catch((): Restoring => 'failed')
+              : 'failed'
         if (cancelled) return
+        const version = restoring === null || restoring === 'failed' ? null : restoring
+        const already = version !== null && sameContent(page, version)
+        const fill = version !== null && !already ? version : page
         setAnswer({ key: requestKey, loaded: { status: 'ready', page } })
-        setTitle(page.title)
-        setDrafts(draftsFrom(page.blocks))
+        setTitle(fill.title)
+        setDrafts(draftsFrom(fill.blocks))
         setBlockErrors({})
-        setSeo(seoDraftFrom(page))
+        setSeo(seoDraftFrom(fill))
         setSeoErrors({})
+        if (versionId !== null) {
+          // Replaces any notice the address carried (a page just made): the two never show together.
+          setNotice(restoreNotice(restoring, already))
+          // Out of the address, so a reload or a copied link does not restore again.
+          navigate({ pathname: location.pathname, search: '' }, { replace: true })
+        }
       })
       .catch((error) => {
         if (cancelled) return
