@@ -1124,3 +1124,83 @@ export async function fakeTeam(page: Page, initial: FakeTeam) {
   )
   return state
 }
+
+// ---- a page's versions (version-history T3) ----
+
+/** A version as `GET /content/:id/versions/:versionId` answers it (api/src/content/content.service.ts). */
+export type FakeVersion = {
+  id: string
+  savedAt: string
+  savedBy: { id: string; name: string } | null
+  title: string
+  blocks: unknown[]
+  data: Record<string, unknown>
+  seoTitle: string | null
+  seoDescription: string | null
+  canonicalUrl: string | null
+  noIndex: boolean
+}
+
+/**
+ * A version of a page. `n` keeps ids and times apart: version `n` was saved `n` minutes after 09:00
+ * UTC on 1 October 2026, so a higher `n` is newer. Any field can be given.
+ */
+export function fakeVersion(n: number, fields: Partial<FakeVersion> = {}): FakeVersion {
+  return {
+    id: `0198f2a0-0000-7000-8000-${String(900000 + n).padStart(12, '0')}`,
+    savedAt: new Date(Date.UTC(2026, 9, 1, 9, 0) + n * 60_000).toISOString(),
+    savedBy: { id: person.id, name: person.name },
+    title: `Title ${n}`,
+    blocks: [],
+    data: {},
+    seoTitle: null,
+    seoDescription: null,
+    canonicalUrl: null,
+    noIndex: false,
+    ...fields,
+  }
+}
+
+/**
+ * A stand-in for the two version routes: for each page id, its versions newest first, as the API
+ * lists them. Register it after `fakeContent`, which answers the other `/content/...` routes.
+ * `calls` records every request, and `override` answers one itself (a 500, no connection, a 403):
+ * return true when it has.
+ */
+export async function fakeVersions(page: Page, byPage: Record<string, FakeVersion[]>) {
+  const state = { byPage, calls: [] as string[], override: null as Handler | null }
+
+  await page.route(
+    (url) =>
+      url.port === String(flowApiPort) &&
+      /^\/content\/[^/]+\/versions(\/[^/]+)?$/.test(url.pathname),
+    async (route, request) => {
+      const url = new URL(request.url())
+      state.calls.push(`${request.method()} ${url.pathname}${url.search}`)
+      if (state.override && (await state.override(route, request))) return
+
+      const [, pageId, versionId] = url.pathname.match(
+        /^\/content\/([^/]+)\/versions(?:\/([^/]+))?$/,
+      )!
+      const versions = state.byPage[pageId] ?? []
+      if (request.method() !== 'GET') return fulfill(route, 404, { message: 'Not found' })
+      if (versionId === undefined) {
+        const limit = Number(url.searchParams.get('limit') ?? 20)
+        const offset = Number(url.searchParams.get('offset') ?? 0)
+        return fulfill(route, 200, {
+          items: versions
+            .slice(offset, offset + limit)
+            .map(({ id, savedAt, savedBy }) => ({ id, savedAt, savedBy })),
+          total: versions.length,
+          limit,
+          offset,
+        })
+      }
+      const found = versions.find((item) => item.id === versionId)
+      return found
+        ? fulfill(route, 200, found)
+        : fulfill(route, 404, { message: 'Version not found' })
+    },
+  )
+  return state
+}

@@ -109,6 +109,17 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   the API's words, and **Try again for <website>** makes that one alone, with a link of its own; a 401 ends the session and the
   sign-in screen replaces the page. The button is in a bar along the bottom (`.sticky-actions`), so it is in view on a long list. The
   stand-ins are `fakeTeam` (the team and `/invitations` for any website) and the fixtures in `e2e/support/company.ts`.
+- **The Versions screen** (`/pages/:id/versions`, `Versions.tsx`, `fetchVersions` and `fetchVersion` in `pages-api.ts`, version-history T3,
+  `../docs/DECISIONS.md` D-057, D-058): a **Versions** link in the Publish box, only for whoever may edit the page (`mayEdit(createdBy)`; it
+  asks the API nothing). The screen asks for the page first (its title, who made it) and for versions only if the person may edit it (else it
+  says "You can't see this page's versions."; the API refuses anyone else too, invariant 3). The saved versions are listed newest first, 20 at a
+  time ("Show older versions"; a slice that fails is said, with Try again, and keeps what is shown), each with its time (`formatMoment()`, the
+  viewer's own zone) and the saver's name ("a former member" when the account is gone). The newest is marked "Current version" and is the one
+  chosen when the screen opens; the choice is not in the address. The chosen version is read-only: its title and search fields as text, its
+  blocks drawn by `LivePreview` (which takes its own `heading`, `frameTitle` and `emptyNote`) in the site's theme. **Restore this version**
+  (not on the newest) is a link to `/pages/:id?restore=<versionId>` at the top of the version, so it is in view on a long one; the edit screen
+  does the rest (T4). Nothing is written here. The stand-in is `fakeVersions` (register it after `fakeContent`, which answers the other
+  `/content/...` routes).
 - **New site** (`/sites/new`, `NewSite.tsx`, `sites-api.ts`) is about the person, not one site, so it is
   routed even when they belong to none. The organization is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new

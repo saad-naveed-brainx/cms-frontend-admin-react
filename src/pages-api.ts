@@ -202,8 +202,89 @@ export async function unpublishPage(id: string): Promise<Page> {
  */
 export async function requestPreview(id: string): Promise<{ token: string; expiresAt: string }> {
   const answer = await authed(`/content/${encodeURIComponent(id)}/preview`, { method: 'POST' })
-  if (!isRecord(answer) || typeof answer.token !== 'string' || typeof answer.expiresAt !== 'string') {
+  if (
+    !isRecord(answer) ||
+    typeof answer.token !== 'string' ||
+    typeof answer.expiresAt !== 'string'
+  ) {
     throw unusable()
   }
   return { token: answer.token, expiresAt: answer.expiresAt }
+}
+
+/** Who saved a version: a name, never an email; `null` once their account is gone. */
+export type VersionSaver = { id: string; name: string } | null
+
+/** A version in a list: when it was saved, and by whom. */
+export type VersionSummary = { id: string; savedAt: string; savedBy: VersionSaver }
+
+export type VersionList = {
+  items: VersionSummary[]
+  total: number
+  limit: number
+  offset: number
+}
+
+/** A version in full: what Save accepts, as it was at that save (api/src/content/content.service.ts). */
+export type Version = VersionSummary &
+  PageSeo & { title: string; blocks: unknown[]; data: Record<string, unknown> }
+
+function isVersionSummary(value: unknown): value is VersionSummary {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.savedAt === 'string' &&
+    (value.savedBy === null || isAuthor(value.savedBy))
+  )
+}
+
+function isVersion(value: unknown): value is Version {
+  return (
+    isRecord(value) &&
+    typeof value.title === 'string' &&
+    Array.isArray(value.blocks) &&
+    isRecord(value.data) &&
+    textOrNull(value.seoTitle) &&
+    textOrNull(value.seoDescription) &&
+    textOrNull(value.canonicalUrl) &&
+    typeof value.noIndex === 'boolean' &&
+    isVersionSummary(value)
+  )
+}
+
+/** One slice of a page's versions, newest first (version-history T1: only whoever may edit the page is answered). */
+export async function fetchVersions(
+  id: string,
+  query: { limit: number; offset: number },
+): Promise<VersionList> {
+  const params = new URLSearchParams({
+    limit: String(query.limit),
+    offset: String(query.offset),
+  })
+  const answer = await authed(`/content/${encodeURIComponent(id)}/versions?${params}`)
+  if (
+    !isRecord(answer) ||
+    !Array.isArray(answer.items) ||
+    !answer.items.every(isVersionSummary) ||
+    typeof answer.total !== 'number' ||
+    typeof answer.limit !== 'number' ||
+    typeof answer.offset !== 'number'
+  ) {
+    throw unusable()
+  }
+  return {
+    items: answer.items,
+    total: answer.total,
+    limit: answer.limit,
+    offset: answer.offset,
+  }
+}
+
+/** One version of a page in full. */
+export async function fetchVersion(id: string, versionId: string): Promise<Version> {
+  const answer = await authed(
+    `/content/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}`,
+  )
+  if (!isVersion(answer)) throw unusable()
+  return answer
 }

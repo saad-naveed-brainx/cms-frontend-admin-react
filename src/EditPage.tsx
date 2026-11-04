@@ -393,6 +393,11 @@ export default function EditPage() {
                   </a>
                 </p>
               )}
+              {editable && (
+                <p className="view-link">
+                  <Link to={`/pages/${page.id}/versions`}>Versions</Link>
+                </p>
+              )}
             </div>
             {(offersPreview || (!editable && formError)) && (
               <div className="postbox-actions">

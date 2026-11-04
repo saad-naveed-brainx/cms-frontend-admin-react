@@ -40,6 +40,7 @@ import Sites from './Sites.tsx'
 import Team from './Team.tsx'
 import { useSignedIn } from './useSignedIn.ts'
 import Users from './Users.tsx'
+import Versions from './Versions.tsx'
 
 type Props = {
   user: User
@@ -208,6 +209,7 @@ export default function Shell({ user, memberships, organizations, organizationId
               <Route path="/pages" element={<PagesList key={current.site.id} />} />
               <Route path="/pages/new" element={<NewPage key={current.site.id} />} />
               <Route path="/pages/:id" element={<EditPage key={current.site.id} />} />
+              <Route path="/pages/:id/versions" element={<Versions key={current.site.id} />} />
               <Route path="/media" element={<Media key={current.site.id} />} />
               <Route path="/types" element={<ContentTypes key={current.site.id} />} />
               <Route path="/appearance" element={<Appearance key={current.site.id} />} />
