@@ -54,5 +54,7 @@ test('[UC-BE-06] the menu has an entry per real content type, each listing its o
   await page.getByLabel('Title', { exact: true }).fill(`Added post ${token}`)
   await page.getByRole('button', { name: 'Create page' }).click()
   await expect(page.getByText(`/blog/added-post-${token}`)).toBeVisible()
-  expect(await api.slugs()).toContain(`added-post-${token}`)
+  // The address is also shown on the form before the page exists, so seeing it proves nothing yet:
+  // wait for the real API to have the page (a one-time look right after the click raced the save).
+  await expect.poll(() => api.slugs()).toContain(`added-post-${token}`)
 })

@@ -109,6 +109,31 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   the API's words, and **Try again for <website>** makes that one alone, with a link of its own; a 401 ends the session and the
   sign-in screen replaces the page. The button is in a bar along the bottom (`.sticky-actions`), so it is in view on a long list. The
   stand-ins are `fakeTeam` (the team and `/invitations` for any website) and the fixtures in `e2e/support/company.ts`.
+- **The Versions screen** (`/pages/:id/versions`, `Versions.tsx`, `fetchVersions` and `fetchVersion` in `pages-api.ts`, version-history T3,
+  `../docs/DECISIONS.md` D-057, D-058): a **Versions** link in the Publish box, only for whoever may edit the page (`mayEdit(createdBy)`; it
+  asks the API nothing). The screen asks for the page first (its title, who made it) and for versions only if the person may edit it (else it
+  says "You can't see this page's versions."; the API refuses anyone else too, invariant 3). The saved versions are listed newest first, 20 at a
+  time ("Show older versions"; a slice that fails is said, with Try again, and keeps what is shown), each with its time (`formatMoment()`, the
+  viewer's own zone) and the saver's name ("a former member" when the account is gone). The newest is marked "Current version" and is the one
+  chosen when the screen opens; the choice is not in the address. The chosen version is read-only: its title and search fields as text, its
+  blocks drawn by `LivePreview` (which takes its own `heading`, `frameTitle` and `emptyNote`) in the site's theme. **Restore this version**
+  (not on the newest) is a link to `/pages/:id?restore=<versionId>` at the top of the version, so it is in view on a long one; the edit screen
+  does the rest (T4). Nothing is written here. The stand-in is `fakeVersions` (register it after `fakeContent`, which answers the other
+  `/content/...` routes).
+- **Restore** (`EditPage.tsx`, version-history T4, `../docs/DECISIONS.md` D-058): the edit screen opened with `?restore=<versionId>` puts that
+  version's **title, blocks and search fields into the boxes as unsaved changes**; the saved page stays the baseline, so Save sends only what
+  differs from it (a restore whose search description equals the saved one does not send it), the Save bar says "You have unsaved changes.", and
+  leaving (a link, Back, the Versions link) asks first, as for any unsaved change. Nothing is written until Save, and Save makes a new version
+  like any save (so the history only grows; the address and status are never touched). The version is read **together with the page** in the
+  load effect, and the boxes are filled once, so the saved page is never shown for a moment first and nothing typed meanwhile can be
+  overwritten; the `restore` parameter is read from `window.location.search` and then removed with a `replace` navigation (so a reload or a
+  copied link does not restore again, and taking it out does not load the page a second time). One notice says what happened: "The version from
+  <time> is loaded. Nothing changes until you press Save.", "That is the version this page has now." (nothing changes, Save stays off), or
+  "Couldn't load that version. The page is as last saved." (not there, a failure, no connection, or the person may not edit the page, in which
+  case the API is not asked); it replaces a notice the address carried ("Page created."). A block the editor does not know is kept exactly as
+  stored and saved as stored; a block with a required field empty is held to the editor's usual rule on Save ("Enter the headline."), as any
+  edit is. `data` (custom fields) has no boxes yet, so a restore does not touch it. Tests: `e2e/restore.spec.ts` (stand-ins); the journey on
+  the real API is `e2e/flow/versions.spec.ts` (T5).
 - **New site** (`/sites/new`, `NewSite.tsx`, `sites-api.ts`) is about the person, not one site, so it is
   routed even when they belong to none. The organization is asked only when they own several. After it is
   created, `reloadProfile(siteId)` (in `session.ts`) asks `/auth/me` again so the Site control lists the new

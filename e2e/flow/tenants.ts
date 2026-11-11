@@ -100,5 +100,26 @@ export const founder = {
   tenant: { organization: 'Harbour Holdings', site: 'Harbour Studio', host: 'harbour.test' },
 }
 
+/**
+ * An eleventh person, who walks the version-history journey (version-history T5): she saves a page twice
+ * through the screen, looks at the oldest version, restores it and saves, and a Viewer is refused its
+ * versions. Her site gains pages, versions and a member, so no other test uses her.
+ */
+export const historian = {
+  admin: { email: 'hana@history.test', name: 'Hana History', password: 'history-flow-password' },
+  tenant: { organization: 'History Press Ltd', site: 'History House', host: 'history.test' },
+}
+
 /** Everyone with a site of their own, each made by the real seed command. */
-export const people = [solo, maker, finisher, stylist, greeter, remover, typer, inviter, founder]
+export const people = [
+  solo,
+  maker,
+  finisher,
+  stylist,
+  greeter,
+  remover,
+  typer,
+  inviter,
+  founder,
+  historian,
+]

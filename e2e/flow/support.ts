@@ -76,6 +76,8 @@ export async function realApi(request: APIRequestContext, person: Person, siteNa
     siteId: site.id,
     /** The organization the site is in: the Organization switcher lists it, the Site switcher lists its sites. */
     organizationId: site.organizationId,
+    /** The person's token and site, for a call this object has no method for. */
+    headers,
     async createPage(data: { type: string; title: string; slug: string; blocks?: object[] }) {
       const response = await request.post(`${flowApiUrl}/content`, { headers, data })
       expect(response.status(), `creating ${data.slug}`).toBe(201)
@@ -120,6 +122,21 @@ export async function realApi(request: APIRequestContext, person: Person, siteNa
     async getPage(id: string) {
       const response = await request.get(`${flowApiUrl}/content/${id}`, { headers })
       return { status: response.status(), body: await response.json() }
+    },
+    /** A page's versions as the real API lists them (newest first, up to 100), and each read in full. */
+    async versions(id: string) {
+      const response = await request.get(`${flowApiUrl}/content/${id}/versions?limit=100`, {
+        headers,
+      })
+      const list = (await response.json()) as { items: { id: string }[]; total: number }
+      const full = []
+      for (const item of response.ok() ? list.items : []) {
+        const one = await request.get(`${flowApiUrl}/content/${id}/versions/${item.id}`, {
+          headers,
+        })
+        full.push((await one.json()) as { id: string; title: string; blocks: unknown[] })
+      }
+      return { status: response.status(), total: list.total, items: full }
     },
     /** The slugs of the site's pages (up to 100), to check what exists. */
     async slugs(): Promise<string[]> {

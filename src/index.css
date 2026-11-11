@@ -1690,6 +1690,106 @@ fieldset.group legend {
   overflow-wrap: anywhere;
 }
 
+/* The Versions screen (version-history T3): the saved versions on the left, the chosen one on the right. */
+.versions {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+@media (max-width: 960px) {
+  .versions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.version-list-box,
+.version-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.version-view {
+  gap: 16px;
+}
+
+.version-list-box h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.version-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  /* A button centres its content and keeps it on one line; a row of text starts at the left and may wrap. */
+  justify-content: flex-start;
+  gap: 2px 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  font: inherit;
+  line-height: 1.5;
+  white-space: normal;
+  text-align: left;
+  color: var(--wp-text);
+  background: var(--wp-box);
+  border: 1px solid var(--wp-border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* The page's own hover turns a button's text white on blue; these rows go pale, so their text stays dark. */
+.version-row:hover,
+.version-row[aria-pressed='true'] {
+  color: var(--wp-text);
+  background: var(--wp-stripe);
+}
+
+.version-row[aria-pressed='true'] {
+  border-color: var(--wp-blue);
+  box-shadow: inset 3px 0 0 var(--wp-blue);
+}
+
+.version-when {
+  font-weight: 600;
+  color: var(--wp-heading);
+}
+
+.version-current {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wp-blue-dark);
+}
+
+.version-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.version-facts p {
+  margin: 0;
+}
+
+/* Beside the list the preview is one more box in the column, not a panel that follows the page's scrolling. */
+.version-view .live-preview {
+  position: static;
+}
+
 /* An invite's link, whole, then Copy (InviteLink.tsx). Clicking the link selects it for copying by hand. */
 .invite-link {
   max-width: 40rem;
