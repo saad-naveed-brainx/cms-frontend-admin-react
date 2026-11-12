@@ -60,7 +60,9 @@ test('[UC-PA-05] a super admin makes an organization for a new person, who opens
     guest.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Platform' }),
   ).toHaveCount(0)
   await guest.goto('/platform/organizations')
-  await expect(guest.getByRole('heading', { level: 1, name: 'Not found' })).toBeVisible()
+  // An owner with no website has no screen at that address: the Platform list is not shown to her.
+  await expect(guest.getByRole('heading', { level: 1, name: 'Organizations' })).toHaveCount(0)
+  await expect(guest.getByRole('heading', { level: 1, name: 'No websites yet' })).toBeVisible()
 
   // The link is used up, and the super admin sees the organization is Active with its owner.
   await page.reload()

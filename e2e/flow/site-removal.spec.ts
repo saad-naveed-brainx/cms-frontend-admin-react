@@ -41,7 +41,7 @@ test('[UC-SD-07] the owner deletes her site on the Sites screen: it is gone from
   const answer = await login.json()
   expect(answer.memberships).toEqual([])
   expect(answer.organizations).toEqual([
-    { id: expect.any(String), name: organization, ownsOrganization: true },
+    { id: expect.any(String), name: organization, ownsOrganization: true, suspended: false },
   ])
 
   // A reload keeps her signed in, with nothing to work on but an organization to add a website to.
