@@ -4,7 +4,8 @@
  * screens never show a half-signed-in state.
  */
 
-export type User = { id: string; email: string; name: string }
+/** `isPlatformAdmin`: the platform operator (platform-admin, D-062); absent from an API that predates it. */
+export type User = { id: string; email: string; name: string; isPlatformAdmin?: boolean }
 
 export type Membership = {
   /**
@@ -27,7 +28,13 @@ export type Membership = {
 }
 
 /** An organization the person owns or has a website in; one they own with no website yet is listed too. */
-export type OrganizationSummary = { id: string; name: string; ownsOrganization: boolean }
+export type OrganizationSummary = {
+  id: string
+  name: string
+  ownsOrganization: boolean
+  /** The platform suspended it: its people may look, not change (platform-admin T4). Absent means no. */
+  suspended?: boolean
+}
 
 export type Profile = {
   user: User

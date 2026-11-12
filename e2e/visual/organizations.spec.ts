@@ -72,19 +72,6 @@ for (const width of [375, 768, 1280]) {
       })
     })
 
-    test('[UC-OR-33] New organization looks as approved', async ({ page }) => {
-      await fakeContent(page, [])
-      const session = await signedInWith(page, {
-        memberships: ownerMemberships,
-        organizations: [kettle],
-      })
-      await fakeSites(page, session, [{ id: kettle.id, name: kettle.name }])
-      await page.goto('/organizations/new')
-      await page.getByRole('button', { name: 'Create organization' }).click()
-      await expect(page.getByText('Enter a name.')).toBeVisible()
-      await expect(page).toHaveScreenshot(`new-organization-${width}.png`, { fullPage: true })
-    })
-
     test('[UC-OR-33] the Sites screen grouped by organization looks as approved', async ({
       page,
     }) => {

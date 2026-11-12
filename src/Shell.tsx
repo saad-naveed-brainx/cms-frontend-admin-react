@@ -26,7 +26,6 @@ import EditPage from './EditPage.tsx'
 import { listPath, pluralLabel } from './helpers.ts'
 import { confirmLeaving } from './leave-guard.ts'
 import Media from './Media.tsx'
-import NewOrganization from './NewOrganization.tsx'
 import NewPage from './NewPage.tsx'
 import NewSite from './NewSite.tsx'
 import NotFound from './NotFound.tsx'
@@ -34,6 +33,8 @@ import Overview from './Overview.tsx'
 import { TYPES_CHANGED, fetchTypes } from './pages-api.ts'
 import type { PageType } from './pages-api.ts'
 import PagesList from './PagesList.tsx'
+import Platform from './Platform.tsx'
+import PlatformNew from './PlatformNew.tsx'
 import { selectOrganization, selectSite, signOut } from './session.ts'
 import { external, siteUrl } from './site-links.ts'
 import Sites from './Sites.tsx'
@@ -61,7 +62,7 @@ export default function Shell({ user, memberships, organizations, organizationId
   const location = useLocation()
   const navigate = useNavigate()
   const current = memberships.find((membership) => membership.site.id === siteId) ?? null
-  const { ownsAnOrganization } = useSignedIn()
+  const { ownsAnOrganization, isPlatformAdmin, organizationSuspended } = useSignedIn()
   // With organizations the Site switcher lists the chosen organization's sites only, and the
   // Organization switcher is there when there is a choice to make.
   const sitesHere =
@@ -166,12 +167,6 @@ export default function Shell({ user, memberships, organizations, organizationId
             <span className="adminbar-label">New site</span>
           </Link>
         )}
-        {organizations !== null && (
-          <Link className="adminbar-item bar-optional" to="/organizations/new">
-            <Building2 aria-hidden="true" size={16} />
-            <span className="adminbar-label">New organization</span>
-          </Link>
-        )}
         <div className="adminbar-end">
           <span className="adminbar-item user">
             Howdy, <strong>{user.name}</strong>
@@ -189,6 +184,12 @@ export default function Shell({ user, memberships, organizations, organizationId
       <AdminMenu key={current?.site.id ?? 'none'} hasSite={current !== null} />
 
       <div className="wp-content">
+        {organizationSuspended && (
+          <p role="status" className="notice warning">
+            Suspended by the platform. You can look, but nothing can be changed until it is
+            reactivated.
+          </p>
+        )}
         <Routes>
           {/* About the person, not one site, so a person with no sites can reach them. */}
           <Route
@@ -198,7 +199,13 @@ export default function Shell({ user, memberships, organizations, organizationId
             }
           />
           <Route path="/sites/new" element={<NewSite />} />
-          <Route path="/organizations/new" element={<NewOrganization />} />
+          {/* The platform operator's own section (the API checks every call, invariant 3). */}
+          {isPlatformAdmin && (
+            <>
+              <Route path="/platform/organizations" element={<Platform />} />
+              <Route path="/platform/organizations/new" element={<PlatformNew />} />
+            </>
+          )}
           {/* The company team is about the organization, so a person whose organization has no site can reach it. */}
           <Route path="/team" element={<Team key={organizationId ?? 'none'} />} />
           <Route path="/team/new" element={<AddPerson key={organizationId ?? 'none'} />} />
@@ -244,6 +251,7 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
     canManageSettings,
     canManageTypes,
     ownsCurrentOrganization,
+    isPlatformAdmin,
   } = useSignedIn()
   // null: the types could not be loaded, so one entry lists every type instead.
   const [types, setTypes] = useState<PageType[] | null | undefined>(undefined)
@@ -349,6 +357,19 @@ function AdminMenu({ hasSite }: { hasSite: boolean }) {
       sub: [
         { label: 'All people', to: '/team', current: path === '/team' },
         { label: 'Add person', to: '/team/new', current: path === '/team/new' },
+      ],
+    })
+  }
+  // The platform operator: organizations and their owners (the API decides, invariant 3).
+  if (isPlatformAdmin) {
+    entries.push({
+      label: 'Platform',
+      to: '/platform/organizations',
+      icon: Building2,
+      current: path.startsWith('/platform'),
+      sub: [
+        { label: 'All organizations', to: '/platform/organizations', current: path === '/platform/organizations' },
+        { label: 'Add New', to: '/platform/organizations/new', current: path === '/platform/organizations/new' },
       ],
     })
   }

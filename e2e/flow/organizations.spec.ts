@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { flowApiUrl } from './env.ts'
+import { flowApiUrl, platformAdmin } from './env.ts'
 import { founder } from './tenants.ts'
 import { realApi, signInThroughTheScreen, unique } from './support.ts'
 
 /**
- * The whole company journey on the REAL API (UC-OR-32, organizations T8). Hal makes an organization,
- * Harbour Co, with two websites through the screens, and adds Nina to both with one link (Editor on
+ * The whole company journey on the REAL API (UC-OR-32, organizations T8). The super admin makes an organization for Hal,
+ * Harbour Co, and Hal gives it two websites through the screens, and adds Nina to both with one link (Editor on
  * the first, Viewer on the second). In a second browser Nina opens the link and makes an account: Nina
  * sees Harbour Co with both websites and nothing of Hal's other organization, writes a page on the
  * first and can only look at the second. Hal's Team lists Nina on both. Someone given only the first
@@ -35,12 +35,20 @@ test('[UC-OR-32] an owner makes an organization with two websites and adds a per
   const shop = `Harbour Shop ${token}`
   const email = `nina-${token}@harbour.test`
 
-  // Hal makes the organization through the screen. It has no website yet.
+  // The platform's super admin makes the organization for Hal (organizations are no longer made by their
+  // owners, D-062), through the real route. Hal owns it at once; it has no website yet.
+  const ops = await request.post(`${flowApiUrl}/auth/login`, {
+    data: { email: platformAdmin.email, password: platformAdmin.password },
+  })
+  expect(ops.status()).toBe(200)
+  const opsToken = ((await ops.json()) as { accessToken: string }).accessToken
+  const made = await request.post(`${flowApiUrl}/platform/organizations`, {
+    headers: { Authorization: `Bearer ${opsToken}` },
+    data: { name: company, ownerEmail: founder.admin.email },
+  })
+  expect(made.status()).toBe(201)
   await signInThroughTheScreen(page, founder.admin)
-  await bar(page).getByRole('link', { name: 'New organization' }).click()
-  await main(page).getByLabel('Name', { exact: true }).fill(company)
-  await main(page).getByRole('button', { name: 'Create organization' }).click()
-  await expect(main(page).getByText('Organization created.')).toBeVisible()
+  await bar(page).getByLabel('Organization', { exact: true }).selectOption({ label: company })
   await expect(main(page).getByText(`${company} has no websites yet.`)).toBeVisible()
 
   // The first website opens on it (Hal owns two organizations now, and is asked which); then the second.

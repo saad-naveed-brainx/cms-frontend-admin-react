@@ -51,12 +51,12 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   place that calls `fetch`. The session decides between sign-in, "checking" and the signed-in frame;
   inside the frame `react-router` does the rest (a data router in `main.tsx`, `createBrowserRouter` with one catch-all
   route around `<App />`, only so `useBlocker` works (D-034); the routes stay in `Shell.tsx`:
-  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites`, `/sites/new`, `/organizations/new`, `/team` and `/team/new`;
+  `/` Dashboard, `/pages`, `/pages/new`, `/pages/:id`, `/media`, `/types`, `/appearance`, `/users`, `/users/new`, `/sites`, `/sites/new`, `/team` and `/team/new`, and for a super admin `/platform/organizations` and `/platform/organizations/new`;
   `/invite` is shown by `App.tsx` before any of this). The page list keeps its filters and
   page number in the address (`../docs/DECISIONS.md` D-020, D-022).
 - **The frame looks like WordPress's admin** (`Shell.tsx`, `../docs/DECISIONS.md` D-027): a dark bar on top (Organization
   switcher when there are several, then the site or Site switcher, New site only for someone who owns an organization (`ownsAnOrganization`;
-  a person with no sites reaches it through Sites › Add New), New organization for anyone, "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
+  a person with no sites reaches it through Sites › Add New), "Howdy, <name>", Sign out) and a dark menu on the left. The menu offers only what works:
   Dashboard, **one entry per content type of the site** (from `GET /content-types`, so `/pages?type=<slug>`, with All …
   and Add New; one "Content" entry if the types cannot load) and Sites. `/pages` with no type is "All content". The
   menu folds to icons at 960 pixels and hides behind a Menu button at 782, as WordPress's does. Light only: the
@@ -84,14 +84,25 @@ settings. Ships as a static build behind `admin.<domain>`. **No database access 
   (label "Organization", id `switch-organization`) shows with two or more organizations, the Site switcher (label "Site") lists only the
   chosen organization's sites, and with one site there is a name instead, as before. An organization with no site (its owner's: a
   member always has one) shows "No websites yet" with **Add your first website** (`/sites/new`, which opens on the organization being
-  worked in, or the one a `?organization=` names, when they own it). **New organization** (`/organizations/new`, `NewOrganization.tsx`,
-  `createOrganization` in `sites-api.ts`): a name, 1 to 100 characters checked here too, the API's refusal next to the box, one click
-  one request; then `reloadProfile(undefined, id)` and the Dashboard route says "Organization created." on "No websites yet". The Sites
+  worked in, or the one a `?organization=` names, when they own it). **Nobody makes an organization from here any more** (the old New
+  organization screen was removed with D-062): the platform's super admin does, in the Platform section below. The Sites
   screen groups sites under their organization (a `section` named by an `h2`, Switch and Delete as before, an empty one says "No
-  websites yet." and leads to New site on it). With two switchers a phone hides Visit Site, New site and New organization from the bar
+  websites yet." and leads to New site on it). With two switchers a phone hides Visit Site and New site from the bar
   (`.two-switchers .bar-optional`); they are on the Dashboard and the Sites screen. The visible word is "organization" (the older
   screens said "organisation"; changed with the three New site screenshots). The real-API flow tests reach a site through
   `openSite()` in `e2e/flow/support.ts`, which sets the remembered site and reloads, since each client there is its own organization.
+- **The Platform section** (`/platform/organizations` and `/platform/organizations/new`, `Platform.tsx`, `PlatformNew.tsx`, `platform-api.ts`,
+  platform-admin T7, T8, `../docs/DECISIONS.md` D-062): shown only to a super admin (`user.isPlatformAdmin` in the profile, `isPlatformAdmin` in
+  `useSignedIn`; the menu entry "Platform" and both routes exist only then, anyone else gets "Not found", and the API decides every call, invariant 3).
+  **Organizations** lists every organization (name with a status word: Active, Suspended, Awaiting owner; owner or "Awaiting owner (email)", a waiting
+  handover; website count) with, on each row, **Suspend/Reactivate** (no confirmation), **Change owner** (a panel: email, name for a new person, "remove
+  the old owner") and **Delete** (a panel that wants the exact name typed; Enter deletes, Escape cancels); one change at a time. **New organization** is a
+  name and the owner's email (a name too when the email has no account); a new person's one-time link is shown in `InviteLinkBox` once (the API keeps
+  only a fingerprint; leaving the screen loses it). The **invite page** also opens an owner link: the lookup's `kind: 'owner'` becomes "You're invited
+  to <organization> as Owner" and `startSession` opens that organization (`ORGANIZATION_KEY`), which may have no website yet. A **suspended
+  organization** shows "Suspended by the platform. You can look, but nothing can be changed…" on every screen (the profile's `organizations[].suspended`);
+  a refused write is said in words (`describeFailure` reads the 403's `code`). The stand-ins are the routes registered by `asSuperAdmin` in
+  `e2e/platform.spec.ts`; the real journey is `e2e/flow/platform.spec.ts` (the flow API is started with a super admin, `platformAdmin` in `e2e/flow/env.ts`).
 - **The company team** (`/team`, `Team.tsx`, `/team/new`, `AddPerson.tsx`, `team-api.ts`, organizations T7, `../docs/DECISIONS.md`
   D-054, D-055): "Team" in the menu only when the organization being worked in is the person's own (`ownsCurrentOrganization` in
   `useSignedIn`; the API decides, invariant 3), and about the organization, not one site, so it is routed even when it has no site.

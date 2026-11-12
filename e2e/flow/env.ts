@@ -17,3 +17,6 @@ export const siteLink = (host: string, path = '/') => `http://${host}:3000${path
 export const flowDatabase = process.env.DEVFLOW_SLOT
   ? `cms_wt${process.env.DEVFLOW_SLOT}_flow`
   : 'cms_flow'
+
+/** The super admin the flow API is started with (e2e/flow/start-api.mjs makes the same account). */
+export const platformAdmin = { email: 'ops@platform.flow.test', password: 'ops-flow-password-123' }
