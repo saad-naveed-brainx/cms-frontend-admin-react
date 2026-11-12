@@ -232,7 +232,14 @@ async function start(): Promise<void> {
  */
 export function startSession(
   result: LoginResult,
-  joined?: { siteId?: string; siteName: string; roleName: string },
+  joined?: {
+    siteId?: string
+    siteName: string
+    roleName: string
+    /** An owner link: the organization to open, which may have no website yet. */
+    organization?: { id: string }
+    ownerOfOrganization?: boolean
+  },
 ): void {
   generation += 1
   token = result.accessToken
@@ -247,7 +254,10 @@ export function startSession(
         ? membership.site.id === joined.siteId
         : membership.site.name === joined.siteName && membership.role.name === joined.roleName,
     )
-  if (landing) {
+  if (joined?.ownerOfOrganization && joined.organization) {
+    // The new owner opens the organization they now own, which may have no website yet.
+    storageSet(ORGANIZATION_KEY, joined.organization.id)
+  } else if (landing) {
     storageSet(SITE_KEY, landing.site.id)
     // Their organization too, or they would land where this browser last was.
     if (result.organizations !== undefined && landing.site.organizationId) {

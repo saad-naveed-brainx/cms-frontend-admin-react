@@ -93,6 +93,13 @@ export function describeFailure(error: unknown, fieldNames: string[]): FormProbl
       }
     }
     if (error.status === 403) {
+      // The platform suspended the organization (platform-admin T4): the API says so with a code.
+      if (isRecord(error.body) && error.body.code === 'organization_suspended') {
+        return {
+          fields: {},
+          form: 'This organization is suspended by the platform, so nothing can be changed.',
+        }
+      }
       return { fields: {}, form: "You don't have permission to do that." }
     }
     if (error.status === 409) {

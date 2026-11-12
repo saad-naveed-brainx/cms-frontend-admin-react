@@ -76,6 +76,12 @@ for (const person of JSON.parse(FLOW_PEOPLE)) {
   )
 }
 
+// The platform operator (platform-admin D-062): makes organizations for owners. The same account is in env.ts.
+run('node', ['dist/cli/create-super-admin.js', '--email', 'ops@platform.flow.test', '--name', 'Platform Ops'], {
+  cwd: apiDir,
+  env: { ...env, SUPER_ADMIN_PASSWORD: 'ops-flow-password-123' },
+})
+
 const server = spawn('node', ['dist/main.js'], { cwd: apiDir, env, stdio: 'inherit' })
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.kill(signal))
 server.on('exit', (code) => process.exit(code ?? 0))

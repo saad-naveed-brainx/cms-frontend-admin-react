@@ -154,11 +154,6 @@ export default function Sites({ memberships, organizations, siteId }: Props) {
         <Link className="button secondary" to="/sites/new">
           Add New Site
         </Link>
-        {organizations !== null && (
-          <Link className="button secondary" to="/organizations/new">
-            Add New Organization
-          </Link>
-        )}
       </div>
       {notice && (
         <p role="status" className="notice">

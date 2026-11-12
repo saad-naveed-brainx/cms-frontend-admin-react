@@ -19,6 +19,8 @@ export type InviteDetails = {
   email: string
   /** Whether the email already has an account: then the page asks only for its password. */
   hasAccount: boolean
+  /** An owner link: it makes them the owner of `organization`, with no website to land on. */
+  ownerOfOrganization?: boolean
 }
 
 export type Lookup =
@@ -30,6 +32,28 @@ export type Lookup =
 export async function lookupInvite(token: string): Promise<Lookup> {
   try {
     const answer = await request('/invitations/lookup', { method: 'POST', body: { token } })
+    // An organization's owner link (platform-admin T3, D-062): the page reads it as "<organization> as Owner".
+    if (
+      isRecord(answer) &&
+      answer.kind === 'owner' &&
+      isRecord(answer.organization) &&
+      typeof answer.organization.id === 'string' &&
+      typeof answer.organization.name === 'string' &&
+      typeof answer.email === 'string' &&
+      typeof answer.hasAccount === 'boolean'
+    ) {
+      return {
+        status: 'valid',
+        invite: {
+          siteName: answer.organization.name,
+          organization: { id: answer.organization.id, name: answer.organization.name },
+          roleName: 'Owner',
+          email: answer.email,
+          hasAccount: answer.hasAccount,
+          ownerOfOrganization: true,
+        },
+      }
+    }
     if (
       isRecord(answer) &&
       isRecord(answer.site) &&

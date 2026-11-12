@@ -27,6 +27,8 @@ export function useSignedIn() {
       canCreate: false,
       ownsAnOrganization: false,
       ownsCurrentOrganization: false,
+      isPlatformAdmin: false,
+      organizationSuspended: false,
       canManageSettings: false,
       canUpload: false,
       canManageTypes: false,
@@ -64,6 +66,11 @@ export function useSignedIn() {
       state.organizations?.some(
         (organization) => organization.id === state.organizationId && organization.ownsOrganization,
       ) ?? false,
+    /** The platform operator: shown the Platform section (the API decides, invariant 3). */
+    isPlatformAdmin: state.user.isPlatformAdmin === true,
+    /** The platform suspended the organization being worked in: its people may look, not change. */
+    organizationSuspended:
+      state.organizations?.find((organization) => organization.id === state.organizationId)?.suspended === true,
     /** The site's name, header, footer and look (Appearance, GOV-04). */
     canManageSettings: permissions.includes(SETTINGS_MANAGE),
     /** Adding pictures to the media library (MED-01). */

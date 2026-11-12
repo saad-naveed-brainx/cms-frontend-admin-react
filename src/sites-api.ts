@@ -30,13 +30,6 @@ export async function fetchOrganizations(): Promise<Organization[]> {
   return answer.items
 }
 
-/** Makes an organization the signed-in person owns (organizations T2): any signed-in person may. */
-export async function createOrganization(name: string): Promise<Organization> {
-  const answer = await authed('/organizations', { method: 'POST', body: { name } })
-  if (!isNamed(answer)) throw unusable()
-  return { id: answer.id, name: answer.name }
-}
-
 export async function createSite(body: {
   name: string
   hostnames: string[]
